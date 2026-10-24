@@ -342,6 +342,10 @@ export const tuning = {
   /** How long a label takes to fade out and in as it crosses an edge (the canvas, the
    *  panel, the header) in flight. Task 12 (motion audit #11): it blinked. */
   labelFadeMs: 120,
+  /** On a phone, how long a press on a model waits before its hidden name fades in: a tap that
+   *  travels is over first, so the name no longer pops in and out as the flight sets off (the
+   *  owner, 2026-10-24). A held press, or a drag, still shows it. */
+  labelHoldMs: 200,
   /** A label's status line: its fade, and the crossfade when its text changes
    *  ("Checking…" → "Working"). Task 12 (motion audit #14). */
   statusFadeMs: 150,

@@ -141,6 +141,59 @@ test.describe('on a phone, by touch, in the portrait overview', () => {
     const own = near.find(([id]) => id === 'exit')![1];
     for (const [id, d] of near.filter(([id]) => id !== 'exit')) expect(d, id).toBeGreaterThanOrEqual(own + 6);
   });
+
+  test("held, a model's name shows; a tap travels without it popping in and out", async ({ page }) => {
+    // The owner, 2026-10-24: a tap marked the node at once, so its hidden name faded in under the
+    // finger and out again as the flight set off. Each step waits a real frame, so the fades run.
+    await open(page);
+    const id = 'eolietech';
+    const li = page.locator(`.labels li:has(button.label[data-go="${id}"])`);
+    const at = await page.evaluate((id) => {
+      const { stage, nodes } = window.__map!;
+      const node = nodes.get(id);
+      const p = node.root.localToWorld(node.bounds.getCenter(node.root.position.clone())).project(stage.camera);
+      const { width, height } = stage.viewport;
+      return { x: ((p.x + 1) / 2) * width, y: ((1 - p.y) / 2) * height };
+    }, id);
+    expect(await page.evaluate(({ x, y }) => document.elementFromPoint(x, y)?.tagName, at), 'the model, not a label').toBe('CANVAS');
+    const cdp = await page.context().newCDPSession(page);
+    const touch = (type: 'touchStart' | 'touchEnd') =>
+      cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x: at.x, y: at.y, radiusX: 12, radiusY: 12 }] });
+    /** Steps the map a frame at a time for `ms` of real time, the label's highest opacity on the way. */
+    const run = (ms: number) =>
+      page.evaluate(
+        async ({ id, ms }) => {
+          const { advance } = window.__map!;
+          const button = document.querySelector(`button.label[data-go="${id}"]`)!;
+          let most = 0;
+          for (const end = performance.now() + ms; performance.now() < end; ) {
+            advance(1 / 60);
+            await new Promise((r) => requestAnimationFrame(r));
+            most = Math.max(most, +getComputedStyle(button).opacity);
+          }
+          return most;
+        },
+        { id, ms },
+      );
+
+    // A press held past the wait shows the name; let go (cancelled: no travel), it hides.
+    await touch('touchStart');
+    await run(100); // marked
+    await expect.poll(() => opacity(page, id), 'held').toBe('1');
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchCancel', touchPoints: [] });
+    await run(100);
+    await expect.poll(() => opacity(page, id), 'let go').toBe('0');
+
+    // A tap: a press as long as a quick finger's, then the flight (out of sight in flight: the
+    // test below; here the clock waits for the test, so the frame before its veil would show).
+    await touch('touchStart');
+    expect(await run(120), 'under the finger').toBeLessThan(0.01);
+    await expect(li).toHaveClass(/is-hover/); // marked at once all the same
+    await touch('touchEnd');
+    await expect(page.locator(`button.label[data-go="${id}"]`)).toHaveAttribute('aria-current', 'location');
+    await page.evaluate((s) => window.__map!.advance(s), tuning.flight.max + 0.1);
+    await expect.poll(() => opacity(page, id), 'shown where it lands').toBe('1');
+  });
 });
 
 /** The named labels on show, their names' boxes, and each model's box on screen (CSS px). */

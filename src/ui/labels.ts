@@ -208,6 +208,7 @@ export function createLabels(
   element.style.setProperty('--label-show', `${tuning.panelInMs}ms`);
   element.style.setProperty('--label-hide', `${tuning.panelOutMs}ms`);
   element.style.setProperty('--label-ease', tuning.panelEase);
+  element.style.setProperty('--label-hold', `${tuning.labelHoldMs}ms`);
 
   const labels: Label[] = [];
   const byId = new Map<string, Label>();

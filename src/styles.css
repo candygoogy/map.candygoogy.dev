@@ -1620,6 +1620,17 @@ html.theme-vt::view-transition-new(root) {
   transition-duration: var(--label-show, 220ms);
 }
 
+/* A press marks its node at once, but its name waits --label-hold to fade
+   in: a tap that travels is over first, so the name no longer pops in and
+   out as the flight sets off (the owner, 2026-10-24). Held, or dragged, it
+   shows. The same for a tap's focus (Android's tap focuses the label); the
+   keyboard's focus and the current station's name show at once. Hidden at
+   once, as ever (the rules above). */
+.stations-nav[data-quiet] :is(li:focus-within, li.is-hover) .label:not(:focus-visible, [aria-current]),
+.labels li[data-quiet]:is(:focus-within, .is-hover) .label:not(:focus-visible, [aria-current]) {
+  transition-delay: var(--label-hold, 200ms);
+}
+
 /* On a phone the current station's name keeps out of sight while the
    camera flies there (labels.ts: data-veil): its side, picked afresh every
    frame, flipped round its model all the way there. Gone over the edge

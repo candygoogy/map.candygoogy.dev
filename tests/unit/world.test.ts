@@ -282,9 +282,11 @@ describe('world.json → arrival', () => {
   // The cluster (Batch B): its links leave each hub as the hub's own lands, at the runtime's
   // tuning.subLinkDrawSpeed (world.py's SUB_LINK_SPEED), each landing its length later and
   // 0.04 s after the one from the same hub before it; the last of them (the laptop's, three
-  // levels down since the real wiring's tree) lands at 2.2 s, and everything else moved earlier
-  // with it (eolietech was 1.72 with twelve nodes, the last of them exit, at 2.2).
-  test.each(clips())("%s lands the origin's links 0.12 s apart in station order from 0, the cluster's from its hub, the last at 2.2 s", (_, t) => {
+  // levels down since the real wiring's tree) lands at 2.2 s. The origin's first link (fettle's)
+  // lands at 0.78 s and the rest evenly apart up to the cluster's (2026-11-04: the cascade kept
+  // them 0.12 s apart from the end, so the three new products moved fettle to 0.42 s and the
+  // first links started drawing before the arrival did; 0.087 s apart now).
+  test.each(clips())("%s lands the origin's links evenly apart in station order from fettle's at 0.78 s, the cluster's from its hub, the last at 2.2 s", (_, t) => {
     const reach = t!.reach;
     const top = STATION_ORDER.filter((id) => id in TABLE && id !== 'origin' && parentOf(id) === 'origin');
     const subs: string[] = STATION_ORDER.filter((id) => id in TABLE && parentOf(id) !== 'origin');
@@ -303,11 +305,15 @@ describe('world.json → arrival', () => {
     const last = Math.max(...subs.map(due));
     expect(last, 'the last of them lands at 2.2 s').toBeCloseTo(2.2, 1);
     expect(reach['origin']).toBe(0);
-    for (let i = 1; i < top.length; i++) expect(reach[top[i]!]! - reach[top[i - 1]!]!, top[i]).toBeCloseTo(0.12, 6);
+    expect(reach[top[0]!]).toBeCloseTo(0.78, 6);
+    // Evenly apart: every gap the same to within a frame at 50 fps (each marker rounds to one).
+    const gaps = top.slice(1).map((id, i) => reach[id]! - reach[top[i]!]!);
+    const even = (reach[top.at(-1)!]! - reach[top[0]!]!) / (top.length - 1);
+    for (const [i, g] of gaps.entries()) expect(Math.abs(g - even), top[i + 1]).toBeLessThanOrEqual(0.02 + 1e-9);
     // Each on a frame at 50 fps, so within half of one (0.01 s) of its own time.
     for (const id of subs) expect(Math.abs(reach[id]! - due(id)), id).toBeLessThanOrEqual(0.0101);
     expect(Math.max(...Object.values(reach))).toBeCloseTo(2.2, 6);
-    expect(reach['eolietech']).toBeCloseTo(1.5, 6); // after siel-eolie, before experiments
+    expect(reach['eolietech']).toBeCloseTo(1.56, 6); // after siel-eolie, before experiments (1.5 at 0.12 s apart)
     // The tree's three levels draw faster, so homelab lands where it did with one (2026-10-21).
     expect(reach['homelab']).toBeCloseTo(1.74, 6);
   });

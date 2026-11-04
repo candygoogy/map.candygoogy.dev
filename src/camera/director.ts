@@ -1953,9 +1953,13 @@ export function createDirector(
     const linksOut = new Map<string, { start: number; span: number }>();
     for (const id of linked) {
       const top = parent(id) === 'origin';
-      const span = curve(id).getLength() / (top ? tuning.linkDrawSpeed : tuning.subLinkDrawSpeed);
-      const after = top ? -Infinity : (reach.get(parent(id)) ?? -Infinity);
-      const start = Math.max(reach.get(id)! - span, after);
+      const draw = curve(id).getLength() / (top ? tuning.linkDrawSpeed : tuning.subLinkDrawSpeed);
+      // An origin link never starts before the arrival (or the reboot) does: one whose node
+      // lands sooner than its length takes draws faster instead, so it isn't part drawn on the
+      // first frame (tellall's, 10 units long, lands at 0.96 s; 2026-11-04).
+      const after = top ? 0 : (reach.get(parent(id)) ?? -Infinity);
+      const start = Math.max(reach.get(id)! - draw, after);
+      const span = top && start > reach.get(id)! - draw ? Math.max(reach.get(id)! - start, 1e-3) : draw;
       linksOut.set(id, { start, span });
       reach.set(id, Math.max(reach.get(id)!, start + span));
     }

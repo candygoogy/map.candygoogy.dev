@@ -148,6 +148,19 @@ const ASIDE = [9, 10, 1, 11, 12, 2, 3, 4, 5];
 /** place()'s side for a landscape phone's crowded station: left, its name (not its status line's
  *  room) flush with the model's left edge, level with its middle or just under the header. */
 const FLUSH = 17;
+/** The right nudged up or down, its name's middle 3 to 12 px off the model's (place()'s sides 18
+ *  on): tried first, before another side, where the right reads as another model's. In the
+ *  landscape overview, with three more products in it (2026-11-04), featherplay's name read as
+ *  Exit's by a pixel, and up 3 px reads as its own. Least moved first, up before down. */
+const NUDGE_DY = [-3, 3, -6, 6, -9, 9, -12, 12];
+const NUDGE = NUDGE_DY.map((_, k) => 18 + k);
+/** The same nudges 4 px nearer the model (a 2 px gap): the last place tried before the right is
+ *  kept unreadable (candygoogy-bot's in the landscape overview, between the origin's box and
+ *  phantomlink-sensors' name). */
+const TIGHT = 4;
+const NUDGE_TIGHT = NUDGE_DY.map((_, k) => 18 + NUDGE_DY.length + k);
+/** Sides only a label on show takes (labels on): over the right, and the nudges. */
+const onShowOnly = (s: number) => (s > 8 && s < 13) || s >= 18;
 
 /** A box on screen: left, top, right, bottom, CSS px. */
 type Rect = [number, number, number, number];
@@ -158,6 +171,8 @@ interface Label {
   button: HTMLButtonElement;
   status: HTMLSpanElement;
   width: number;
+  /** Its name and its status line in the words it shows now, the wider, in CSS px (measure()). */
+  inner: number;
   height: number;
   x: number;
   y: number;
@@ -234,7 +249,7 @@ export function createLabels(
     button.append(name, status);
     item.append(button);
     list.append(item);
-    const label: Label = { id, item, button, status, width: 0, height: 0, x: NaN, y: NaN, off: null, nohit: null, named: null, cut: '', side: 0, shown: false, box: null, hold: false, veil: false };
+    const label: Label = { id, item, button, status, width: 0, inner: 0, height: 0, x: NaN, y: NaN, off: null, nohit: null, named: null, cut: '', side: 0, shown: false, box: null, hold: false, veil: false };
     labels.push(label);
     byId.set(id, label);
 
@@ -347,6 +362,9 @@ export function createLabels(
   function measure(): void {
     for (const l of labels) {
       l.width = l.button.offsetWidth;
+      // The status line from the button's left edge: its inset, its words now, the same after.
+      const after = parseFloat(getComputedStyle(l.button).paddingRight) || 0;
+      l.inner = Math.max(l.width, Math.ceil(l.status.offsetLeft + l.status.getBoundingClientRect().width + after));
       // Unrounded (a line is 19.6 px): offsetHeight's 20 left the target 0.4 px short of 44.
       l.height = l.button.getBoundingClientRect().height;
     }
@@ -561,7 +579,13 @@ export function createLabels(
       // no status line, so it takes its name's room alone (Notary's, left of its model at the
       // phone's closer start, lay 32 px off it, past the status line's room).
       const bare = shows && !asked(l);
-      const w = bare ? l.width : Math.max(l.width, room);
+      // Held inside the free area (its room on the right would run past the edge: Exit's, focused,
+      // its model off a phone's right edge), it takes the words it shows, not the widest a status
+      // line may show: kept in by "Checking…"'s width where "Working" showed, Exit's lay 22 px
+      // further from its model than it needed, nearer featherplay's (2026-11-04). Elsewhere the
+      // room stays, so a label doesn't move as its words change.
+      const roomy = Math.max(l.width, room);
+      const w = bare ? l.width : cx! + hw! + GAP + roomy > freeRight ? l.inner : roomy;
       const h = bare ? l.height : l.height * 2;
       const kw = shows ? w : l.width;
       const kh = shows ? h : l.height;
@@ -615,6 +639,9 @@ export function createLabels(
         [x1, past(x1, over, false)],
         // FLUSH: a landscape phone's crowded station (below).
         [cx! - hw! - GAP - l.width, Math.max(y0, band)],
+        // NUDGE, then NUDGE_TIGHT: the right a few px up or down, then the same nearer the model.
+        ...NUDGE_DY.map((dy) => [cx! + hw! + GAP, y0 + dy] as const),
+        ...NUDGE_DY.map((dy) => [cx! + hw! + GAP - TIGHT, y0 + dy] as const),
       ] as const;
       // How far side s's box (w by h, or bw by bh) lies from model j's (NaN: that model's not on
       // screen).
@@ -732,13 +759,18 @@ export function createLabels(
             return j === i || !p || !(x < p[0] + o.width && x + l.width > p[0] && y < p[1] + o.height && y + l.height > p[1]);
           });
         };
-        const other = ASIDE.includes(l.side) || l.side === FLUSH;
+        const other = ASIDE.includes(l.side) || l.side === FLUSH || l.side >= 18;
         const moved = n.root.position.distanceToSquared(n.home) > 1e-8; // lifted or pulled
         const held = (moved || l.id === hovered || l.button === doc.activeElement) && (other || l.side === 0);
         if (!held && (gone || own(0, other ? GAP + STICK : GAP))) l.side = 0;
         else if (!held && (!other || !inside(l.side) || !own(l.side, GAP - HOLD) || !apart(l.side))) {
           const near = (a: number, b: number) => far(a, i, l.width, l.height) - far(b, i, l.width, l.height);
-          const clear = ASIDE.filter((s) => inside(s) && own(s, GAP) && apart(s));
+          // The right nudged a little first (NUDGE), least moved first; then the other sides, the
+          // nearest its own model first; then the nudges nearer the model (NUDGE_TIGHT).
+          const free = (s: number) => inside(s) && own(s, GAP) && apart(s);
+          const nudged = NUDGE.find(free);
+          const clear = ASIDE.filter(free);
+          const tight = nudged === undefined && !clear.length ? NUDGE_TIGHT.find(free) : undefined;
           // A landscape phone's thin strip at a station (the homelab cluster's), none clear: off the
           // names placed so far only (each later one keeps off it in turn), or FLUSH, inside with
           // its name and off the docked gondola, reading as its own; else the right, as before.
@@ -751,14 +783,14 @@ export function createLabels(
             const [x, y] = sides[s]!;
             return !Number.isNaN(x + y) && !onGondola(x, y) && x >= 0 && y >= band && x + l.width <= freeRight && y + kh <= freeBottom;
           };
-          const crowd = clear.length || !strip ? [] : [...ASIDE, FLUSH].filter((s) => within(s) && own(s, GAP) && placedApart(s));
-          l.side = clear.sort(near)[0] ?? crowd.sort(near)[0] ?? 0;
+          const crowd = nudged !== undefined || clear.length || tight !== undefined || !strip ? [] : [...ASIDE, FLUSH].filter((s) => within(s) && own(s, GAP) && placedApart(s));
+          l.side = nudged ?? clear.sort(near)[0] ?? tight ?? crowd.sort(near)[0] ?? 0;
         }
       } else if (!hush || behind || (subQuiet(l.id) && !shows)) l.side = 0;
-      else if ((shows && !l.shown) || (shows && current && fresh) || (l.side > 8 && l.side < 13) || !fits(l.side, shows)) {
+      else if ((shows && !l.shown) || (shows && current && fresh) || onShowOnly(l.side) || !fits(l.side, shows)) {
         // The first clear side, or, shown, the clear side nearest its own model: one that
-        // reads as its own if there is one. Off the gondola, right still first. (Past 8: a side
-        // only the labels on show take, from before the layout turned quiet.) The current
+        // reads as its own if there is one. Off the gondola, right still first. (onShowOnly: a
+        // side only the labels on show take, from before the layout turned quiet.) The current
         // station's is picked afresh in flight and as it lands, like the labels that are on: one
         // picked early in flight was kept while it stayed clear, so the landing never put it
         // back beside its model (ap's, desktop's, switch's, over them in empty space). Picked
@@ -971,6 +1003,12 @@ export function createLabels(
     dirty = true;
     clock.invalidate();
   };
+  /** A status line's words changed: its label's width (inner) is measured again before it's placed. */
+  const remeasure = () => {
+    measured = false;
+    dirty = true;
+    clock.invalidate();
+  };
   for (const id of byId.keys()) void nodes.get(id).ready.then(again);
   void doc.fonts?.ready.then(again);
 
@@ -987,6 +1025,7 @@ export function createLabels(
         // "Working" faded in and dropped out (the fade-in held it over the let-go's fade-out).
         for (const ghost of l.button.querySelectorAll('.status')) if (ghost !== l.status) ghost.remove();
         for (const a of l.status.getAnimations?.() ?? []) a.cancel();
+        if (l.status.textContent !== words) remeasure();
         l.status.textContent = words;
         l.status.style.transition = 'none';
         l.item.toggleAttribute('data-pinned', pinned);
@@ -1006,6 +1045,7 @@ export function createLabels(
           setTimeout(() => ghost.remove(), tuning.statusFadeMs + 50);
         }
         l.status.textContent = words;
+        remeasure();
       }
       l.item.toggleAttribute('data-pinned', pinned);
     },

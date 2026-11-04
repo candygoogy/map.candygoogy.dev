@@ -452,16 +452,24 @@ test('the labels follow the turn and the pan', async ({ page }) => {
       const { stage, nodes } = window.__map!;
       const n = nodes.get('notary');
       const p = n.root.localToWorld(n.bounds.getCenter(n.root.position.clone())).project(stage.camera);
-      const label = document.querySelector('button.label[data-go="notary"]')!.getBoundingClientRect();
-      return { model: ((p.x + 1) / 2) * stage.viewport.width, y: ((1 - p.y) / 2) * stage.viewport.height, label: label.left, top: label.top };
+      const button = document.querySelector('button.label[data-go="notary"]')!;
+      const label = button.getBoundingClientRect();
+      const off = button.closest('li')!.hasAttribute('data-off');
+      return { model: ((p.x + 1) / 2) * stage.viewport.width, y: ((1 - p.y) / 2) * stage.viewport.height, label: label.left, top: label.top, off };
     });
   const at = await emptyFloor(page);
   for (const button of ['right', 'left'] as const) {
     const a = await where();
     await drag(page, at, 150, button === 'left' ? 40 : 0, 12, button);
+    // The pointer comes to rest before it lets go, so the pan doesn't glide on. A glide's speed is
+    // the pointer's in real time (zoom.ts), so how far it went changed from run to run: with the
+    // emptiest floor at the bottom right (20 stops), it carried Notary's model to the panel's edge,
+    // where its label is hidden (data-off) and held inside, so it can't follow (85 px off).
+    await page.waitForTimeout(tuning.pan.window * 1000 + 70);
     await page.mouse.up({ button });
-    await advance(page, 2); // a pan's glide too
+    await advance(page, 2);
     const b = await where();
+    expect(b.off, button).toBe(false); // on show: a hidden label is parked, not placed by its model
     expect(Math.abs(b.model - a.model), button).toBeGreaterThan(10); // the model moved on screen
     expect(Math.abs(b.label - a.label - (b.model - a.model)), button).toBeLessThan(12); // and its label with it
     expect(Math.abs(b.top - a.top - (b.y - a.y)), button).toBeLessThan(12);
@@ -1256,6 +1264,13 @@ test.describe('zoom on a phone, by touch', () => {
       await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: pt(5 * i, 3 * i) });
       await advance(page, 1 / 60);
     }
+    // The finger comes to rest before it lifts. Lifted while moving (a flick), Chrome takes the
+    // next tap as the one that stops the fling and sends no click, on any touch-action: none
+    // element (a bare page does the same); its window is real time, so the tap below, about
+    // 0.1 s later, travelled or not by how long the steps took. (A real tap that soon after a
+    // flick lands while the map still glides on.)
+    await page.waitForTimeout(200);
+    await cdp.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: pt(50, 30) });
     await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
     await settle(page, 30);
     const after = await look();

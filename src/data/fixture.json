@@ -49,6 +49,42 @@
       "page": "/fettle"
     },
     {
+      "id": "featherplay",
+      "kind": "project",
+      "name": "featherplay",
+      "blurb": "Native Windows player for YouTube Music, unofficial",
+      "summary": "A free, open-source Windows player for YouTube Music. It plays your library, playlists and radio in one native program, with no browser behind the window and no video.",
+      "status": "live",
+      "version": "0.1.0",
+      "runsOn": "Windows 10 and 11 (64-bit)",
+      "license": "MIT",
+      "stack": ["Rust", "Slint", "Astro", "Cloudflare Workers"],
+      "links": [
+        { "label": "featherplay.candygoogy.dev", "href": "https://featherplay.candygoogy.dev" },
+        { "label": "Source on GitHub", "href": "https://github.com/candygoogy/featherplay" }
+      ],
+      "updated": "2026-11-03",
+      "page": "/featherplay"
+    },
+    {
+      "id": "tellall",
+      "kind": "project",
+      "name": "tellall",
+      "blurb": "What an image or a text gives away, and a clean copy",
+      "summary": "A free, open-source privacy check for images and copied text. It tells you in plain sentences what they give away and makes a clean copy, on your device.",
+      "status": "live",
+      "version": "0.1.1",
+      "runsOn": "A web browser, or Node.js 20.19 or later",
+      "license": "MIT",
+      "stack": ["TypeScript", "Vite", "Cloudflare Workers"],
+      "links": [
+        { "label": "tellall.candygoogy.dev", "href": "https://tellall.candygoogy.dev" },
+        { "label": "Source on GitHub", "href": "https://github.com/candygoogy/tellall" }
+      ],
+      "updated": "2026-10-28",
+      "page": "/tellall"
+    },
+    {
       "id": "idiff",
       "kind": "project",
       "name": "Install diff",
@@ -64,6 +100,22 @@
       ],
       "updated": "2026-10-14",
       "page": "/idiff"
+    },
+    {
+      "id": "phantomlink-sensors",
+      "kind": "project",
+      "name": "phantomlink-sensors",
+      "blurb": "Sapphire PhantomLink power connector temperatures in HWiNFO",
+      "summary": "A small background tool for the Sapphire NITRO+ RX 9070 XT PhantomLink. The card measures the temperature at its 12V-2x6 and GC-HPWR power connectors, but only Sapphire’s TriXX shows it. This tool reads the same sensors and adds them to HWiNFO, to graph, log and alert on. It never writes to the card.",
+      "status": "live",
+      "version": "0.2.2",
+      "runsOn": "Windows 10 and 11 (64-bit)",
+      "license": "MIT",
+      "stack": ["Rust"],
+      "links": [
+        { "label": "Source on GitHub", "href": "https://github.com/candygoogy/phantomlink-sensors" }
+      ],
+      "updated": "2026-10-30"
     },
     {
       "id": "notary",

@@ -27,9 +27,10 @@ describe('powerTimeline', () => {
     // The cluster's devices go dark before their hub.
     expect(t.dark.get('laptop')!).toBeLessThan(t.dark.get('homelab')!);
     expect(t.dark.get('ap')!).toBeLessThan(t.dark.get('homelab')!);
-    expect(t.dark.get('fettle')).toBeCloseTo(0.38 + 0.08 * 15); // 1.58 s with the cluster's five
+    // 1.58 s with the cluster's five, 1.82 s since featherplay, tellall and phantomlink-sensors.
+    expect(t.dark.get('fettle')).toBeCloseTo(0.38 + 0.08 * 18);
     expect(t.dark.get('origin')).toBeCloseTo(0.3);
-    expect(t.reboot).toBeCloseTo(1.58 + 1.2);
+    expect(t.reboot).toBeCloseTo(1.82 + 1.2);
   });
 
   // The cluster's tree (2026-10-21): station order puts each hub before what hangs off it, so in
@@ -46,11 +47,13 @@ describe('powerTimeline', () => {
     expect(t.reboot).toBeCloseTo(1.5);
   });
 
-  test('without the cluster (twelve stations) fettle goes dark at 1.18 s and the reboot is at 2.38 s', () => {
-    const twelve = ids.filter((id) => !['ap', 'desktop', 'server', 'switch', 'laptop'].includes(id));
-    const t = powerTimeline(twelve, false);
-    expect(t.dark.get('fettle')).toBeCloseTo(1.18);
-    expect(t.reboot).toBeCloseTo(2.38);
+  // Fifteen since featherplay, tellall and phantomlink-sensors (2026-11-04; it was twelve, fettle
+  // at 1.18 s and the reboot at 2.38 s).
+  test('without the cluster (fifteen stations) fettle goes dark at 1.42 s and the reboot is at 2.62 s', () => {
+    const fifteen = ids.filter((id) => !['ap', 'desktop', 'server', 'switch', 'laptop'].includes(id));
+    const t = powerTimeline(fifteen, false);
+    expect(t.dark.get('fettle')).toBeCloseTo(1.42);
+    expect(t.reboot).toBeCloseTo(2.62);
   });
 });
 

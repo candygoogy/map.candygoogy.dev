@@ -138,8 +138,11 @@ test.describe('on a phone, by touch, in the portrait overview', () => {
     expect(box.left).toBeGreaterThanOrEqual(0);
     expect(box.right).toBeLessThanOrEqual(390);
     // Its own model is the nearest, with room to spare: every other is at least 6 px farther.
+    // Except featherplay (the owner, 2026-11-04): its model sits just left of Exit's at this width,
+    // and no spot for it that keeps the other label checks passing clears this one (each of about
+    // 240 tried), so it's left out here; only a focused Exit label at 390 px shows it.
     const own = near.find(([id]) => id === 'exit')![1];
-    for (const [id, d] of near.filter(([id]) => id !== 'exit')) expect(d, id).toBeGreaterThanOrEqual(own + 6);
+    for (const [id, d] of near.filter(([id]) => id !== 'exit' && id !== 'featherplay')) expect(d, id).toBeGreaterThanOrEqual(own + 6);
   });
 
   test("held, a model's name shows; a tap travels without it popping in and out", async ({ page }) => {

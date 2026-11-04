@@ -9,7 +9,12 @@
 export const STATION_ORDER = [
   'origin',
   'fettle',
+  // Three more products (2026-11-04), east of the origin with fettle and idiff: featherplay and
+  // tellall between fettle and idiff, phantomlink-sensors after it, in the feed's order.
+  'featherplay',
+  'tellall',
   'idiff',
+  'phantomlink-sensors',
   'notary',
   'candygoogy-bot',
   'dolci-eoliani',

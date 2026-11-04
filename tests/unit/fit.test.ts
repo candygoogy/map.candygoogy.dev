@@ -86,7 +86,10 @@ const groundPoints = () => Object.values(SHOWN).map((xz) => new Vector3(xz[0], 0
 const NAME_PX: Record<string, number> = {
   origin: 122, // candygoogy.dev
   fettle: 51,
+  featherplay: 89,
+  tellall: 50,
   idiff: 80, // Install diff
+  'phantomlink-sensors': 153,
   notary: 59,
   'candygoogy-bot': 122,
   'dolci-eoliani': 94,

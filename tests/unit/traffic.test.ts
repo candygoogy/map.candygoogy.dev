@@ -1,3 +1,4 @@
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { Vector3 } from 'three';
 import { describe, expect, test } from 'vitest';
@@ -255,14 +256,16 @@ describe('the stray’s way', () => {
   });
 
   // Every station's way, on the models' real footprints (their GLBs' bounds without the shadow,
-  // as nodes.ts measures them): it starts at its node, heads out, crosses no other model and ends
+  // as nodes.ts measures them; the placeholder box's for a node with no model yet, as nodes.ts
+  // loads it): it starts at its node, heads out, crosses no other model and ends
   // in the duck's footprint, even in length.
   test('strayWay from every station: out from its node, past no other model, into the duck’s footprint', async () => {
     const ids = Object.keys(world.nodes);
     const spots: Spot[] = await Promise.all(
       ids.map(async (id) => {
         const s = at(id);
-        const { min, max } = await glbBounds(join(ROOT, 'public', 'models', `${id}.glb`), ['shadow']);
+        const file = existsSync(join(ROOT, 'public', 'models', `${id}.glb`)) ? id : 'box';
+        const { min, max } = await glbBounds(join(ROOT, 'public', 'models', `${file}.glb`), ['shadow']);
         return { ...s, box: [s.x + min[0]!, s.z + min[2]!, s.x + max[0]!, s.z + max[2]!] as const };
       }),
     );

@@ -22,11 +22,11 @@ describe('stations', () => {
   });
 
   // The homelab cluster (Batch B): its five sub-nodes are stations right after homelab, so the loop
-  // has 17 stops. Since the real wiring's tree (2026-10-21) each hub comes before what hangs off
+  // has 17 stops (20 since featherplay, tellall and phantomlink-sensors, 2026-11-04). Since the real wiring's tree (2026-10-21) each hub comes before what hangs off
   // it: the switch, its desktop, server and AP, then the AP's laptop.
   test("the cluster's sub-nodes follow homelab in the loop, whatever order the feed lists them in", () => {
     const stations = createStations(withCluster(parseFeed(fixture), world).nodes.map((n) => n.id));
-    expect(stations.ids).toHaveLength(17);
+    expect(stations.ids).toHaveLength(20);
     const at = stations.ids.indexOf('homelab');
     expect(stations.ids.slice(at, at + 7)).toEqual(['homelab', 'switch', 'desktop', 'server', 'ap', 'laptop', 'colophon']);
     stations.go('homelab');

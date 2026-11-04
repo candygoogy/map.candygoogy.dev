@@ -584,6 +584,7 @@ test.describe('on a phone, by touch', () => {
   });
 
   test('a focused label, name and status line, lies over no other model (Experiments kept off candygoogy-bot)', async ({ page }) => {
+    test.setTimeout(60_000); // every station's label against every other model: 20 by 19 since 2026-11-04, about 31 s
     await open(page, '', { width: 390, height: 844 });
     await page.evaluate(() => document.fonts.ready);
     for (const id of order) {

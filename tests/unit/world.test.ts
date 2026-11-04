@@ -42,6 +42,10 @@ const TABLE: Record<string, [number, number]> = {
   homelab: [-5.2, 7.4],
   colophon: [3.6, 7.6],
   exit: [7.8, 4.2],
+  // Three more products (2026-11-04), in gaps inside the network's extents.
+  featherplay: [5.8, 1.4],
+  tellall: [-3.6, 8.6],
+  'phantomlink-sensors': [-8.4, 1.4],
   // The homelab cluster (Batch B, option A) west of the hub, wired as in reality since
   // 2026-10-21 (layout R1); before, layout W2's arc, every device
   // on its own link from homelab.

@@ -347,11 +347,12 @@ test('pressing → three times quickly ends on the third station with matching h
   await advance(page, tuning.flight.max + FRAME);
 
   expect(await state(page)).toBe('station');
-  await expect(page).toHaveURL(/\?test#idiff$/);
-  expect(await page.evaluate(() => window.__map!.stations.current)).toBe('idiff');
-  await expect.poll(() => page.evaluate(() => window.__map!.panel.shown)).toBe('idiff');
-  await expect(page.locator('section.station#idiff')).not.toHaveClass(/\bsr-only\b/);
-  expect(await offFraming(page, 'idiff')).toBeLessThan(1e-6);
+  // The third in STATION_ORDER: origin, fettle, featherplay (idiff's place until 2026-11-04).
+  await expect(page).toHaveURL(/\?test#featherplay$/);
+  expect(await page.evaluate(() => window.__map!.stations.current)).toBe('featherplay');
+  await expect.poll(() => page.evaluate(() => window.__map!.panel.shown)).toBe('featherplay');
+  await expect(page.locator('section.station#featherplay')).not.toHaveClass(/\bsr-only\b/);
+  expect(await offFraming(page, 'featherplay')).toBeLessThan(1e-6);
 });
 
 test('hiding the tab mid-arrival then showing it finishes the arrival without a camera jump', async ({ page }) => {

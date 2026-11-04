@@ -21,10 +21,11 @@ describe('fallback html', () => {
     feed.nodes.reverse();
     const html = renderStations(feed, copy);
     expect(sectionIds(html)).toEqual([
-      'origin', 'fettle', 'idiff', 'notary', 'candygoogy-bot', 'dolci-eoliani',
-      'siel-eolie', 'eolietech', 'experiments', 'homelab', 'colophon', 'new-thing', 'exit',
+      'origin', 'fettle', 'featherplay', 'tellall', 'idiff', 'phantomlink-sensors', 'notary',
+      'candygoogy-bot', 'dolci-eoliani', 'siel-eolie', 'eolietech', 'experiments', 'homelab', 'colophon',
+      'new-thing', 'exit',
     ]);
-    expect(html.match(/<h2[ >]/g)).toHaveLength(13);
+    expect(html.match(/<h2[ >]/g)).toHaveLength(16);
     expect(html).toContain('<dl class="facts');
     expect(html).toContain('href="https://fettle.page/"');
   });
@@ -120,13 +121,13 @@ describe('fallback html', () => {
   // The numbers in What's on it come from the feed as the map shows it, never from the copy.
   it('counts the welcome’s stops, projects, tools and machines from the feed', () => {
     const feed = withCluster(parseFeed(fixture), world);
-    expect(welcomeCounts(feed)).toEqual({ stops: 17, projects: 7, tools: 7, machines: 5 });
+    expect(welcomeCounts(feed)).toEqual({ stops: 20, projects: 10, tools: 7, machines: 5 });
     // Each number kept on its word's line (a no-break space), the wiring a paragraph of its own.
     expect(renderWelcome(feed, copy).replaceAll(' ', ' ')).toContain(
-      `<p class="summary">${esc('17 stops, from candygoogy.dev to the exit: 7 projects, 7 small tools under Experiments, the homelab and 5 of its machines, and the colophon.')}</p>` +
+      `<p class="summary">${esc('20 stops, from candygoogy.dev to the exit: 10 projects, 7 small tools under Experiments, the homelab and 5 of its machines, and the colophon.')}</p>` +
         '<p class="summary">The homelab is wired the way it is at home.</p>',
     );
-    expect(renderWelcome(feed, copy)).toContain('exit: 7 projects, 7 small');
+    expect(renderWelcome(feed, copy)).toContain('exit: 10 projects, 7 small');
     // A project more, a tool fewer, a machine left off the map: the words follow.
     const more = parseFeed(fixture);
     more.nodes.unshift({ id: 'new-thing', kind: 'project', name: 'New thing', links: [] });
@@ -135,9 +136,9 @@ describe('fallback html', () => {
     const placed = { ...world, nodes: { ...world.nodes } } as typeof world;
     delete (placed.nodes as Record<string, unknown>).laptop;
     const counts = welcomeCounts(withCluster(more, placed));
-    expect(counts).toEqual({ stops: 17, projects: 8, tools: 6, machines: 4 });
+    expect(counts).toEqual({ stops: 20, projects: 11, tools: 6, machines: 4 });
     expect(renderWelcome(withCluster(more, placed), copy).replaceAll(' ', ' ')).toContain(
-      '17 stops, from candygoogy.dev to the exit: 8 projects, 6 small tools under Experiments, the homelab and 4 of its machines',
+      '20 stops, from candygoogy.dev to the exit: 11 projects, 6 small tools under Experiments, the homelab and 4 of its machines',
     );
   });
 

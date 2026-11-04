@@ -70,7 +70,7 @@ test('hidden until found: no model, link, ring, label or panel, never in the ‹
   const s = await duckState(page);
   expect(s).toMatchObject({ model: false, link: 0, ring: false, label: false, section: false, revealed: false });
   expect(s.ids).not.toContain('duck');
-  expect(s.ids).toHaveLength(17);
+  expect(s.ids).toHaveLength(20);
   await expect(page.locator('section.station[data-node="duck"]')).toBeHidden();
   // ‹ › all the way round, twice: never the duck.
   const seen = await page.evaluate(() => {

@@ -14,7 +14,12 @@ const PILL = 0.26;
 async function station(page: Page, id: string, width: number, height: number): Promise<void> {
   // Every route due at once (the hub still spaces them), so the links fill early.
   await page.addInitScript(() => {
-    Math.random = () => 0.01;
+    // Small values, not one: three.js makes every uuid from Math.random, and with a constant they
+    // all match, so GLTFLoader's material cache ('ClonedMaterial:' + uuid) hands a model's meshes
+    // one another's materials, whichever loads first (a floor shadow left in ap's footprint
+    // starved the laptop's link of signals, 2026-11-04). A fixed seed, under 0.02.
+    let seed = 1;
+    Math.random = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 0.02;
   });
   await page.setViewportSize({ width, height });
   await page.goto('/?test');
@@ -95,7 +100,9 @@ for (const [id, width, height] of [
 async function overview(page: Page, busy: boolean): Promise<void> {
   if (busy) {
     await page.addInitScript(() => {
-      Math.random = () => 0.01;
+      // As station()'s: small, seeded values, never one constant (three.js's uuids).
+      let seed = 1;
+      Math.random = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 0.02;
     });
   }
   await page.setViewportSize({ width: 1440, height: 900 });
@@ -157,7 +164,10 @@ test('at 2x a stray nearer than signalNear is still whole (world-sized)', async 
     const { director } = window.__map!;
     director.viewTo(0.5, director.framing(null).target);
   });
-  await expect.poll(() => page.evaluate(() => window.__map!.traffic.sendStray())).toBe(true);
+  // Out of fettle, not a random node in view (strayStart): at 2x signalNear is held at
+  // max(0.5, 1.2 / signalZoomMax) of itself (zoomedScale), so a stray nearer than that shrinks,
+  // as it should, and one from a front node (colophon, homelab, tellall…) was one a second out.
+  await expect.poll(() => page.evaluate(() => window.__map!.traffic.sendStray('fettle'))).toBe(true);
   const seen = await page.evaluate(() => {
     const { traffic, stage, advance } = window.__map!;
     advance(1);
@@ -166,6 +176,7 @@ test('at 2x a stray nearer than signalNear is still whole (world-sized)', async 
     return { scale: root.scale.x, depth };
   });
   expect(seen.depth, 'nearer than signalNear').toBeLessThan(tuning.signalNear);
+  expect(seen.depth, 'beyond its 2x share').toBeGreaterThan(tuning.signalNear * Math.max(0.5, 1.2 / tuning.signalZoomMax));
   expect(seen.scale).toBeCloseTo(1, 3);
 });
 

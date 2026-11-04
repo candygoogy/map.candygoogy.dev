@@ -169,7 +169,12 @@ test('the hubs’ rings are never drawn, even while the gondola rounds them', as
 test("signals for the cluster are relayed down the tree: out of the router onto the switch's link, and on to the laptop through the AP", async ({ page }) => {
   // Every route due at once (the hub still spaces them), so a relayed one goes out early.
   await page.addInitScript(() => {
-    Math.random = () => 0.01;
+    // Small values, not one: three.js makes every uuid from Math.random, and with a constant they
+    // all match, so GLTFLoader's material cache ('ClonedMaterial:' + uuid) hands a model's meshes
+    // one another's materials, whichever loads first (a floor shadow left in ap's footprint
+    // starved the laptop's link of signals, 2026-11-04). A fixed seed, under 0.02.
+    let seed = 1;
+    Math.random = () => ((seed = (seed * 16807) % 2147483647) / 2147483647) * 0.02;
   });
   await open(page);
   await undrawn(page);

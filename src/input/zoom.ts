@@ -39,7 +39,7 @@
 import type { Vector3 } from 'three';
 import type { Director } from '../camera/director';
 import type { Nodes } from '../world/nodes';
-import { easeInOutCubic } from '../motion/ease';
+import { easeInOutCubic, glideStep as glide } from '../motion/ease';
 import { prefs } from '../motion/prefs';
 import type { Clock } from '../stage/clock';
 import type { Stage } from '../stage/stage';
@@ -85,16 +85,9 @@ export function capSpeed([vx, vz]: [number, number], max: number): [number, numb
   return v > max ? [(vx * max) / v, (vz * max) / v] : [vx, vz];
 }
 
-/**
- * One step of a glide at speed (vx, vz), dt seconds, decaying with the time constant `tau`:
- * how far it goes in that step and its speed after, [dx, dz, vx, vz]. Steps add up to the same
- * however the time is cut, and the whole glide goes speed × tau.
- */
-export function glideStep(vx: number, vz: number, dt: number, tau: number = tuning.pan.glide): [number, number, number, number] {
-  const k = Math.exp(-dt / tau);
-  const s = tau * (1 - k);
-  return [vx * s, vz * s, vx * k, vz * k];
-}
+/** One step of a glide (motion/ease.ts), decaying over tuning.pan.glide unless told otherwise. */
+export const glideStep = (vx: number, vz: number, dt: number, tau: number = tuning.pan.glide): [number, number, number, number] =>
+  glide(vx, vz, dt, tau);
 
 /** A point on the floor, x and z. */
 export type Flat = readonly [number, number];

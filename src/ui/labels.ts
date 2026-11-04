@@ -82,6 +82,13 @@
 //   (Switch's, under, left, up-left, left, on the owner's iPhone, 2026-10-23). As the camera
 //   lands it's placed once, at the side it rests on, and fades in there. Focused from the
 //   keyboard, it stays shown.
+// - Brought into view: focused other than by a pointer (Tab, a screen reader; :focus-visible) in
+//   the settled overview, a label whose model lies mostly off the free area (past the screen's
+//   edge, under the panel or the phone's sheet) has the overview pan just far enough that its
+//   model is on screen with its own size to spare, gliding as a let-go pan does (reduced motion:
+//   at once), then is placed as usual. Never in the arrival or a flight, never zoomed; any other
+//   move of the view stops it. Focused Exit's model lay past a phone's right edge, so its label,
+//   held inside, lay nearer featherplay's (the owner, 2026-11-04).
 // - The homelab cluster's sub-nodes (Task 13 Batch B): their five labels
 //   would crowd the fan, so in the overview, on every screen, each keeps quiet the same way
 //   (data-quiet on its own item) and takes no room, until focused, hovered or current. At a
@@ -91,7 +98,7 @@ import { Box3, Vector3 } from 'three';
 import type { Director } from '../camera/director';
 import { isPortrait } from '../camera/fit';
 import { runtimeCopy as copy } from '../copy-runtime';
-import { clamp01 } from '../motion/ease';
+import { clamp01, glideStep } from '../motion/ease';
 import { prefs } from '../motion/prefs';
 import { tuning } from '../tuning';
 import type { MapFeed } from '../data/feed';
@@ -111,12 +118,14 @@ export interface Labels {
   /** The CSS px a label takes to its model's right: its gap and the wider of its button and
    *  its status line; 0 while it keeps quiet (a phone's overview, a sub-node's in any overview). */
   room(id: string): number;
-  /** The camera's flights: while one flies, the current label's side off the gondola isn't held. */
-  follow(flights: Pick<Director, 'flight'>): void;
+  /** The director: while a flight flies, the current label's side off the gondola isn't held;
+   *  in the overview a focused label's model off the screen is brought on (Brought into view). */
+  follow(director: Follow): void;
   dispose(): void;
 }
 
 export type LabelStage = Pick<Stage, 'camera' | 'viewport' | 'inset'>;
+type Follow = Pick<Director, 'flight' | 'state' | 'look' | 'zoom' | 'viewTo'>;
 
 /** Room between the model's right edge and its label, in CSS px. */
 const GAP = 6;
@@ -201,7 +210,7 @@ export function createLabels(
   nodes: Pick<Nodes, 'get' | 'hovered'>,
   stations: Pick<Stations, 'ids' | 'current' | 'subscribe'> & Partial<Pick<Stations, 'hidden' | 'revealed' | 'onReveal'>>,
   feed: Pick<MapFeed, 'nodes'>,
-  clock: Pick<Clock, 'addLate' | 'invalidate'>,
+  clock: Pick<Clock, 'add' | 'addLate' | 'invalidate'>,
   doc: Document = document,
   /** The links, for where the gondola docks: without them the labels don't keep off it. */
   links?: Pick<Links, 'curve'>,
@@ -272,6 +281,8 @@ export function createLabels(
     on('focus', () => {
       focused = true;
       sync();
+      // Not a pointer's (a click or a tap focuses without :focus-visible): its model brought on.
+      if (button.matches(':focus-visible')) revealing = label;
       dirty = true; // a hidden label shows while focused: place it inside the free area
       clock.invalidate();
     });
@@ -318,8 +329,13 @@ export function createLabels(
   let measured = false;
   /** The view's size and the panel's inset as at the last late step (snapshot()). */
   let framed = false;
-  /** The camera's flights (follow()), and whether one flew at the last late step. */
-  let flights: Pick<Director, 'flight'> | null = null;
+  /** The director (follow()), and whether a flight flew at the last late step. */
+  let flights: Follow | null = null;
+  /** A label focused other than by a pointer, its model to bring on screen at the next place(). */
+  let revealing: Label | null = null;
+  /** The glide bringing one on: its removal, and the view's target where it last left it. */
+  let offReveal: (() => void) | null = null;
+  let revealAt: Vector3 | null = null;
   let flew = true;
 
   function snapshot(): boolean {
@@ -475,6 +491,61 @@ export function createLabels(
   const header = doc.querySelector('header.top');
   const back = header?.querySelector('.back');
 
+  function stopReveal(): void {
+    offReveal?.();
+    offReveal = null;
+    revealAt = null;
+  }
+
+  /** Brought into view (above): label i's model, its box on screen in `rects`, mostly outside
+   *  the free area (left 0, `top`, `right`, `bottom`), has the overview pan till it's inside with
+   *  its own width and height to spare. */
+  function reveal(i: number, top: number, right: number, bottom: number): void {
+    const d = flights;
+    if (!d || d.state !== 'overview' || d.flight || wide[i] || spots[i * 5 + 4] === 1) return;
+    const [l, t, r, b] = rects.subarray(i * 4, i * 4 + 4) as unknown as number[];
+    if (Number.isNaN(l! + t! + r! + b!)) return;
+    const [w, h] = [r! - l!, b! - t!];
+    const seen = Math.max(0, Math.min(r!, right) - Math.max(l!, 0)) * Math.max(0, Math.min(b!, bottom) - Math.max(t!, top));
+    if (seen >= (w * h) / 2) return; // mostly on screen already
+    const sx = l! - w < 0 ? w - l! : r! + w > right ? right - w - r! : 0;
+    const sy = t! - h < top ? top + h - t! : b! + h > bottom ? bottom - h - b! : 0;
+    // The pan moves the camera across the floor: the model's centre comes to where the point
+    // level with it, under its place on screen + (sx, sy), is now.
+    const { camera } = stage;
+    const { width, height } = stage.viewport;
+    const n = nodes.get(labels[i]!.id);
+    n.root.localToWorld(n.bounds.getCenter(centre));
+    const [cx, cy] = spots.subarray(i * 5, i * 5 + 2) as unknown as number[];
+    view.set(((cx! + sx) / width) * 2 - 1, 1 - ((cy! + sy) / height) * 2, 0.5).unproject(camera).sub(camera.position);
+    if (Math.abs(view.y) < 1e-6) return;
+    view.multiplyScalar((centre.y - camera.position.y) / view.y).add(camera.position);
+    const goal = d.look.add(centre).sub(view).setY(0);
+    stopReveal();
+    if (prefs.reduced) {
+      d.viewTo(d.zoom, goal);
+      return;
+    }
+    // A glide that goes the whole way: speed × tau (glideStep).
+    const tau = tuning.pan.glide;
+    const from = d.look;
+    let v = [(goal.x - from.x) / tau, (goal.z - from.z) / tau];
+    revealAt = from;
+    offReveal = clock.add((dt) => {
+      const at = d.look;
+      // Moved some other way (a pan, a turn, a zoom, travel): that move has it.
+      if (d.state !== 'overview' || d.flight || !revealAt || at.distanceTo(revealAt) > 1e-6) return void stopReveal();
+      const [dx, dz, vx, vz] = glideStep(v[0]!, v[1]!, dt, tau);
+      v = [vx, vz];
+      const near = Math.hypot(vx, vz) < tuning.pan.stop * camera.position.distanceTo(at);
+      // Slowed to nothing: the last of it at once (a pixel or so); stopped by the network's edge.
+      const went = d.viewTo(d.zoom, near ? goal : at.clone().set(at.x + dx, 0, at.z + dz)) ? d.look : null;
+      if (near || !went || went.distanceTo(at) < 0.5 * Math.hypot(dx, dz)) return void stopReveal();
+      revealAt = went;
+      return true;
+    });
+  }
+
   /** `fresh`: in flight, or just landed, or the view's size or the panel's inset moved: the
    *  current label's side off the gondola is picked afresh, not held, and on a phone the current
    *  label's side too. `flying`: in flight, where the side it has counts STICK px nearer, and
@@ -524,6 +595,8 @@ export function createLabels(
       spots.set([((centre.x + 1) / 2) * width, ((1 - centre.y) / 2) * height, (maxX - minX) / 2, (maxY - minY) / 2, +behind], i * 5);
     }
     placeGondola(width, height);
+    if (revealing) reveal(labels.indexOf(revealing), band, freeRight, freeBottom);
+    revealing = null;
     const pad = labels[0]?.status.offsetLeft ?? 0; // the button's inset of its words
     const room = statusRoom();
     /** Quiet here: a phone's overview, or a cluster sub-node's in any overview. */
@@ -1061,6 +1134,7 @@ export function createLabels(
     },
     dispose() {
       disposed = true;
+      stopReveal();
       for (const fn of cleanups) fn();
       element.remove();
     },

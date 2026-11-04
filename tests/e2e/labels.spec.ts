@@ -85,7 +85,7 @@ test.describe('on a phone, by touch, in the portrait overview', () => {
     }, tuning.flight.max + 0.1);
     await expect(page.locator('button.label[data-go="fettle"]')).toHaveAttribute('aria-current', 'location');
     await expect.poll(() => opacity(page, 'fettle')).toBe('1');
-    for (const id of order.filter((id) => id !== 'fettle')) expect(await opacity(page, id), id).toBe('0');
+    for (const id of order.filter((id) => id !== 'fettle')) await expect.poll(() => opacity(page, id), id).toBe('0'); // a fade runs in real time
   });
 
   test("a station near the screen's right edge still shows its label, held inside", async ({ page }) => {
@@ -106,11 +106,13 @@ test.describe('on a phone, by touch, in the portrait overview', () => {
 
   test('a focused label near the right edge keeps its status line on the screen, nearest its own model', async ({ page }) => {
     // Exit's "Working" ran to x = 414 at 390 px; moved in under Exit, it read as Install diff's.
+    // Its model lies past the right edge at this width: focused from the keyboard, the overview
+    // pans it on screen (labels.ts, Brought into view), and its label is placed by it.
     await open(page);
     const label = page.locator('button.label[data-go="exit"]');
     await label.focus();
-    await page.evaluate(() => window.__map!.advance(0.5)); // its hover has settled
-    const { box, near } = await label.evaluate((b, ids) => {
+    await page.evaluate(() => window.__map!.advance(1)); // its hover has settled, and the pan
+    const { box, near, model, free } = await label.evaluate((b, ids) => {
       const { stage, nodes } = window.__map!;
       const { width, height } = stage.viewport;
       const r = b.getBoundingClientRect();
@@ -131,18 +133,20 @@ test.describe('on a phone, by touch, in the portrait overview', () => {
         }
         const dx = Math.max(0, m.left - box.right, box.left - m.right);
         const dy = Math.max(0, m.top - box.bottom, box.top - m.bottom);
-        return [id, Math.hypot(dx, dy)] as const;
+        return [id, Math.hypot(dx, dy), m] as const;
       });
-      return { box, near };
+      const free = { right: width - stage.inset.right, bottom: height - stage.inset.bottom };
+      return { box, near: near.map(([id, d]) => [id, d] as const), model: near.find(([id]) => id === 'exit')![2], free };
     }, order);
+    // The overview panned its model on screen, clear of the sheet's peek.
+    expect(model.left).toBeGreaterThanOrEqual(0);
+    expect(model.right).toBeLessThanOrEqual(free.right);
+    expect(model.bottom).toBeLessThanOrEqual(free.bottom);
     expect(box.left).toBeGreaterThanOrEqual(0);
     expect(box.right).toBeLessThanOrEqual(390);
     // Its own model is the nearest, with room to spare: every other is at least 6 px farther.
-    // Except featherplay (the owner, 2026-11-04): its model sits just left of Exit's at this width,
-    // and no spot for it that keeps the other label checks passing clears this one (each of about
-    // 240 tried), so it's left out here; only a focused Exit label at 390 px shows it.
     const own = near.find(([id]) => id === 'exit')![1];
-    for (const [id, d] of near.filter(([id]) => id !== 'exit' && id !== 'featherplay')) expect(d, id).toBeGreaterThanOrEqual(own + 6);
+    for (const [id, d] of near.filter(([id]) => id !== 'exit')) expect(d, id).toBeGreaterThanOrEqual(own + 6);
   });
 
   test("held, a model's name shows; a tap travels without it popping in and out", async ({ page }) => {

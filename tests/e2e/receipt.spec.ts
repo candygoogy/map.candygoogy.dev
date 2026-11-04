@@ -158,7 +158,9 @@ test('Back from #receipt returns to #exit with the exit panel', async ({ page })
   await expect(page).toHaveURL(/#exit$/);
   await land(page);
   expect(await state(page)).toBe('station');
-  expect(await page.evaluate(() => window.__map!.panel.shown)).toBe('exit');
+  // The panel's swap is a fade on the real clock (panel.ts, panelOutMs), not the manual one: the
+  // landing above can take less time than that on a GPU.
+  await expect.poll(() => page.evaluate(() => window.__map!.panel.shown)).toBe('exit');
   await expect(page.locator('section.station[data-node="exit"]').getByRole('button', { name: 'Leave' })).toBeVisible();
 });
 

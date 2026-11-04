@@ -369,6 +369,7 @@ export async function start(): Promise<void> {
         stage: stage!,
         theme: () => stage!.theme,
         invalidate: () => clock!.invalidate(),
+        clock: clock!,
         startedAt: performance.timeOrigin,
       });
     }, console.error);

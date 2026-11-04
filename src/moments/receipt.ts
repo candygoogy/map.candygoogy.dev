@@ -29,6 +29,7 @@ import { RECEIPT, type Stations } from '../nav/stations';
 import type { Theme } from '../stage/theme';
 import type { Panel } from '../ui/panel';
 import type { Nodes } from '../world/nodes';
+import type { Clock } from '../stage/clock';
 import { prefs } from '../motion/prefs';
 import { clock, drawReceipt, duration, RECEIPT_WIDTH, receiptFontsReady, receiptLength, receiptPng, revisitsOf, TIME, verdictOf } from './receipt-canvas';
 import { createTrip, type Trip, type TripSummary } from './trip';
@@ -78,6 +79,8 @@ export interface ReceiptDeps {
   stage: { renderer: { domElement: HTMLCanvasElement }; camera: PerspectiveCamera };
   /** Asks the clock for a frame (the strip moved). */
   invalidate: () => void;
+  /** The scene's clock, which runs the clips: the print comes off on it, in step with `tear`. */
+  clock: Pick<Clock, 'add'>;
   /** When the visit began (epoch ms): the page's start. */
   startedAt?: number;
   doc?: Document;
@@ -212,6 +215,8 @@ export function createReceipt(deps: ReceiptDeps): Receipt {
   let print: Texture | null = null;
   let torn = true; // no strip stands out of the slot
   let kept = true; // this receipt has been torn off or kept (or there's none): nothing to print
+  /** The pending snap, if any: the tick that takes the print off once the strip is gone. */
+  let offSnap: (() => void) | null = null;
   function paperMaterial(): MeshBasicMaterial | null {
     let found: Material | null = null;
     nodes.get('fettle').root.traverse((o) => {
@@ -245,6 +250,8 @@ export function createReceipt(deps: ReceiptDeps): Receipt {
     print.repeat.set(1, PAPER_L / long);
     print.offset.set(0, -CURL_LEN / long);
     print.needsUpdate = true;
+    offSnap?.(); // an older tear's snap leaves this print alone
+    offSnap = null;
     setPrint(print);
   }
 
@@ -290,7 +297,18 @@ export function createReceipt(deps: ReceiptDeps): Receipt {
     if (torn) return;
     torn = true;
     void nodes.get('fettle').play('tear');
-    win.setTimeout(() => setPrint(null), prefs.reduced ? 0 : TEAR_SNAP_S * 1000);
+    if (prefs.reduced) return void win.setTimeout(() => setPrint(null), 0);
+    // TEAR_SNAP_S into the clip, counted on the clock that plays it, not the wall's: a stalled
+    // frame (dt is capped), a hidden tab or ?test's manual clock holds the clip back, and a
+    // timer would take the print off while the strip still stands out.
+    let left = TEAR_SNAP_S;
+    offSnap?.();
+    offSnap = deps.clock.add((dt) => {
+      if ((left -= dt) > 0) return true;
+      offSnap?.();
+      offSnap = null;
+      setPrint(null);
+    });
   }
 
   // Leaving the receipt without keeping it: it's torn off all the same, so Fettle is back to rest.
@@ -470,6 +488,7 @@ export function createReceipt(deps: ReceiptDeps): Receipt {
       offCut();
       offLit();
       offStations();
+      offSnap?.();
       doc.documentElement.removeAttribute('data-receipt');
       setPrint(null);
       print?.dispose();

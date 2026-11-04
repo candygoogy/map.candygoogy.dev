@@ -18,7 +18,9 @@ const KB = 1000;
 // on the owner's word, 2026-11-04, for the featherplay, tellall and phantomlink-sensors stations).
 const MODELS_MAX = 4_750_000;
 const AFTER_ARRIVAL_MAX = 4_850_000;
-const FIRST_LOAD_MAX = 210 * KB;
+// First-load JS ≤ 215 kB (raised from 210 on the owner's word, 2026-11-04, for the theme wipe's
+// pass-through of presses and wheel zooms).
+const FIRST_LOAD_MAX = 215 * KB;
 // The meshopt decoder's scalar wasm build, which the runtime fetches only where there's no wasm
 // SIMD (Safari before 16.4; src/vendor/meshopt_decoder.js).
 const SCALAR_MAX = 4 * KB;

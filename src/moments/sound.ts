@@ -92,9 +92,10 @@ export const CUES: Record<string, Hit[]> = {
     ...[0, 1, 2, 3, 4, 5].map((i) => ({ at: F(12 + 2 * i), sound: 'breaker' as const, gain: -3 })),
   ],
   // colophon.py clip_poke_lamp: the pull chain's switch clicks at the bottom of the pull (3), and
-  // the ball chain rattles as it springs back (4-7) and swings on its socket.
+  // the ball chain rattles as it springs back (4-7) and swings on its socket. The click carries the
+  // peak (near 0 dBFS in Firefox at full gain), so it's the one turned down, not the chain.
   'colophon poke_lamp': [
-    { at: F(3), sound: 'click' },
+    { at: F(3), sound: 'click', gain: -3 },
     { at: F(4), sound: 'chain', gain: -4 },
   ],
   // clip_poke: the top book's back board lifts (0-10), its last three leaves riffle, three frames

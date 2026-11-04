@@ -221,6 +221,7 @@ describe('the cues', () => {
         'eolietech poke',
         'exit poke', // three knocks and the latch
         'experiments poke_keyboard', // the key press (no poke in the cluster presses a key)
+        'featherplay poke', // the woofer's beat, the feather blown up and touching down
         'fettle arrive',
         'fettle poke',
         'fettle tear', // Task 16's receipt torn off
@@ -233,6 +234,7 @@ describe('the cues', () => {
         'origin off',
         'origin on',
         'origin poke_power',
+        'phantomlink-sensors poke', // its fans, as the desktop's, and the gauge's tick
         'plane home', // secret 3's flight (moments/plane.ts)
         'plane lid',
         'plane out',
@@ -242,6 +244,7 @@ describe('the cues', () => {
         'siel-eolie poke_test',
         'switch poke_cable', // the cable unplugged, and plugged back in
         'switch poke_cable_tidy',
+        'tellall poke', // the pin's pop, its landing on its tip and its sinking back
         'visitor dock',
       ].sort(),
     );

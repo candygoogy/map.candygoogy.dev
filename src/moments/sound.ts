@@ -123,6 +123,29 @@ export const CUES: Record<string, Hit[]> = {
     { at: 0, sound: 'flick', gain: -5 },
     { at: F(11), sound: 'pat', gain: -3 },
   ],
+  // featherplay.py clip_poke: the cone's one deep beat (out in two frames, 0-2), its breath
+  // blowing the feather up off the top (lifts at 1, the top of its rise at 9); it rocks down
+  // like a leaf and touches down where it lay (33), barely heard.
+  'featherplay poke': [
+    { at: F(1), sound: 'whoosh', gain: -10, length: F(8) },
+    { at: F(2), sound: 'thump', gain: -3 },
+    { at: F(33), sound: 'pat', gain: -12 },
+  ],
+  // tellall.py clip_poke: the lens arrives over the pin's spot (17) and the pin pops up through
+  // it (17-22), drops onto its tip (25), and sinks back into the picture (29-33). The lens's
+  // swings are silent: it moves through air.
+  'tellall poke': [
+    { at: F(17), sound: 'flick', gain: -4 },
+    { at: F(25), sound: 'tap', gain: -6 },
+    { at: F(29), sound: 'slide', gain: -9, length: F(4) },
+  ],
+  // phantomlink-sensors.py clip_poke: a burst of load, as the desktop's: the fans spin up hard
+  // (0-4), hold, and run back to idle (12-32); the gauge's needle peaks a touch past (10), a
+  // faint tick against its trembling.
+  'phantomlink-sensors poke': [
+    { at: 0, sound: 'fans', length: F(32) },
+    { at: F(10), sound: 'tap', gain: -14 },
+  ],
   // candygoogy-bot.py clip_poke: off the pin (2), the barrel roll (4-17), back onto the pin (19).
   'candygoogy-bot poke': [
     { at: F(4), sound: 'whoosh', length: F(13) },

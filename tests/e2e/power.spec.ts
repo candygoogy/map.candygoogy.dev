@@ -356,7 +356,9 @@ test.describe('on a phone', () => {
     const at = await overSwitch(page);
     await page.touchscreen.tap(at.x, at.y);
     await expect.poll(() => page.evaluate(() => window.__map!.nodes.get('origin').playing)).toBe('poke_power');
-    await advance(page, 1.8); // fettle went dark at 1.58 s; the dive ended at 1.55 s
+    // fettle goes dark at 1.82 s since the three new stations (it was 1.58 s; power.test.ts), the
+    // reboot at 3.02 s; the dive ended at 1.55 s.
+    await advance(page, 2.04);
     // The sheet's slide is CSS, on wall-clock time: let it reach its peek before measuring.
     await expect.poll(() => page.evaluate(() => document.getElementById('stations')!.getBoundingClientRect().top)).toBeGreaterThan(700);
     const seen = await page.evaluate(() => {

@@ -586,7 +586,8 @@ test.describe('on a phone, by touch', () => {
     expect(start.zoom).toBeLessThan(0.85); // closer than composed: about 1.25x
     expect(start.zoom).toBeGreaterThan(0.7);
     expect(start.look).toBeLessThan(1e-6);
-    expect(start.n).toBe(6);
+    // Seven since the new stations: featherplay (5.97 from the hub) is inside rangeRings[1] too.
+    expect(start.n).toBe(7);
     // Every inner station in view, and the ring as wide as the screen, less a model's room each side.
     expect(Math.min(...start.xs)).toBeGreaterThan(0);
     expect(Math.max(...start.xs)).toBeLessThan(start.width);
@@ -1093,7 +1094,8 @@ test.describe('zoom', () => {
     await advance(page, 1);
     expect(await turn(page)).toBe(0);
     await page.keyboard.press('ArrowRight');
-    expect(await current(page)).toBe('idiff');
+    // featherplay follows fettle in STATION_ORDER since the new stations (it was idiff).
+    expect(await current(page)).toBe('featherplay');
     // Travel put focus nowhere special (or on the heading): the map has it again.
     await advance(page, tuning.flight.max + 1);
     await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur());

@@ -17,6 +17,9 @@
 // - Phone header (under 900px, in 3D): one icon button, the pressed option; a tap cycles.
 // - Every wipe starts here, the colophon lamp's pull too (src/moments/lamp.ts presses the pill's
 //   option), so a skipped one's rejected promises are caught here for both.
+// - Nothing is lost to a wipe: while one runs Chromium sends every press to <html> (the
+//   transition's overlay), so a press there ends it at once and goes on to what it was aimed at
+//   (passThrough, below). Keys go to the focused element and never needed it.
 
 export type Choice = 'auto' | 'light' | 'dark';
 export type Look = 'light' | 'dark';
@@ -79,6 +82,71 @@ function storage(): Store | undefined {
   }
 }
 
+/** A press that reaches <html> during a wipe ends the wipe and goes on to what it was aimed at.
+ *
+ *  While a View Transition runs, Chromium hit-tests every press to its pseudo-elements, which
+ *  deliver to <html> (`pointer-events: none` on them doesn't help): a second pull of the lamp, a
+ *  change of mind on the pill, a click on the map or the panel was lost. The new theme is on by
+ *  the time the overlay is up, so skipping the wipe only ends the blind early. Then:
+ *  - the pointerdown is sent again to what's under it now (the canvas's handlers in src/input,
+ *    a button, the panel); a touch or pen is captured there, as it would have been;
+ *  - the browser still counts the press as one on <html>: its mousedown would move focus to the
+ *    page and start a text selection there instead, so it focuses what a press on the target
+ *    would have (a button or link, else nothing), and the click, which lands on <html>, is sent
+ *    on to the target (a tap's click is hit-tested afresh, after the wipe, and needs nothing).
+ *  `wipe` is the wipe running now, if any. */
+function passThrough(doc: Document, wipe: () => ViewTransition | null): void {
+  const root = doc.documentElement;
+  const on = <K extends 'pointerdown' | 'mousedown' | 'pointerup' | 'pointercancel' | 'click'>(
+    type: K,
+    f: (e: WindowEventMap[K]) => void,
+  ) => (doc.defaultView ?? window).addEventListener(type, f, true);
+  /** A copy of the event, sent to `el` (untrusted: the listeners here let it by). */
+  const resend = <E extends MouseEvent>(e: E, el: Element) =>
+    el.dispatchEvent(new (e.constructor as new (type: string, init: E) => E)(e.type, e));
+  // The press sent on: its pointer, where it went down and where it came up.
+  let aimed: { id: number; down: Element; up?: Element } | null = null;
+
+  on('pointerdown', (e) => {
+    const vt = wipe();
+    if (!e.isTrusted) return; // the press sent on, among others
+    aimed = null;
+    if (!vt || e.target !== root) return;
+    vt.skipTransition();
+    const el = doc.elementFromPoint(e.clientX, e.clientY);
+    if (!el || el === root) return;
+    e.stopImmediatePropagation();
+    aimed = { id: e.pointerId, down: el };
+    // A touch or pen stays with what it pressed (the implicit capture it would have had there),
+    // unless that takes it itself; <html> keeps none.
+    if (e.pointerType !== 'mouse') el.setPointerCapture(e.pointerId);
+    resend(e, el);
+  });
+  on('mousedown', (e) => {
+    if (!aimed || e.target !== root || !e.isTrusted) return;
+    e.stopImmediatePropagation();
+    e.preventDefault();
+    // What a press there would have focused: a button or link, else nothing (as on the map).
+    const focus = aimed.down.closest<HTMLElement>('button, a[href], [tabindex]');
+    if (focus) focus.focus({ preventScroll: true });
+    else (doc.activeElement as HTMLElement | null)?.blur();
+  });
+  on('pointerup', (e) => void (aimed?.id === e.pointerId && (aimed.up = e.target as Element)));
+  on('pointercancel', (e) => void (aimed?.id === e.pointerId && (aimed = null)));
+  on('click', (e) => {
+    const was = aimed;
+    if (!was || !e.isTrusted) return;
+    aimed = null;
+    if (e.target !== root) return; // a tap's, hit-tested afresh
+    // The click goes where the press went down and came up have in common (the browser's rule).
+    let to: Element | null = was.down;
+    while (to && was.up && !to.contains(was.up)) to = to.parentElement;
+    if (!to || to === root) return;
+    e.stopImmediatePropagation();
+    resend(e, to);
+  });
+}
+
 /** Runs every [data-theme-switch] on the page. */
 export function initThemeSwitch(doc: Document = document): void {
   const root = doc.documentElement;
@@ -88,6 +156,9 @@ export function initThemeSwitch(doc: Document = document): void {
   const current = (): Choice => parseChoice(root.dataset.theme);
   // Every switch on the page shows a theme put on by any of them.
   const syncs: (() => void)[] = [];
+  // The wipe running now, if any (one at a time on the page: a new one ends it).
+  let active: ViewTransition | null = null;
+  passThrough(doc, () => active);
 
   const choose = (value: Choice): void => {
     applyChoice(root, meta, value);
@@ -100,8 +171,6 @@ export function initThemeSwitch(doc: Document = document): void {
     const resolved = group.querySelector<HTMLElement>('[data-resolved]');
     let pending = 0;
     let latest = 0;
-    // The wipe running now, if any.
-    let active: ViewTransition | null = null;
 
     const press = (value: Choice): void => {
       group.dataset.current = value;

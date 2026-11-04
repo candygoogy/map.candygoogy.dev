@@ -12,6 +12,7 @@ declare global {
     __sameDocument?: boolean;
     __transitions?: number;
     __firstPaint?: { theme?: string; bg: string };
+    __presses?: string[];
   }
 }
 
@@ -182,6 +183,48 @@ test('a wipe skipped as it starts (a fast change of mind, a fast lamp pull) leav
   }
   await page.waitForTimeout(300);
   expect(errors).toEqual([]);
+});
+
+test('a press while the blind comes down isn’t lost: the pill takes it, and so does the map', async ({ page }) => {
+  // While a View Transition runs, Chromium sends every press to <html> (its overlay), so a
+  // change of mind on the pill, a click on a model or a second pull of the lamp did nothing. A
+  // press there now ends the blind at once (its theme is already on) and goes on to its target.
+  await page.addInitScript(() => {
+    // Each real press: what it was sent to, if a View Transition was running then.
+    window.__presses = [];
+    addEventListener('pointerdown', (e) => void (e.isTrusted && window.__presses!.push(document.activeViewTransition ? (e.target as Element).nodeName : '-')), true);
+  });
+  await page.emulateMedia({ colorScheme: 'light' });
+  await open(page);
+  const blind = () => page.waitForFunction(() => !!document.activeViewTransition && document.documentElement.classList.contains('theme-vt'));
+  const html = page.locator('html');
+
+  // The pill: Dark, and Light while Dark comes down.
+  const light = (await option(page, 'Light').boundingBox())!;
+  await option(page, 'Dark').click();
+  await blind();
+  await page.mouse.click(light.x + light.width / 2, light.y + light.height / 2);
+  await expect(option(page, 'Light')).toHaveAttribute('aria-pressed', 'true');
+  await expect(html).toHaveAttribute('data-theme', 'light');
+  await expect.poll(() => clearColour(page)).toBe('#f4f4f5');
+  await expect(html).not.toHaveClass(/theme-vt/);
+
+  // The map: a click on Fettle while Dark comes down flies there.
+  const fettle = await page.evaluate(() => {
+    const { stage, nodes } = window.__map!;
+    const n = nodes.get('fettle');
+    const p = n.bounds.getCenter(n.root.position.clone()).add(n.root.position).project(stage.camera);
+    const { width, height } = stage.viewport;
+    return { x: ((p.x + 1) / 2) * width, y: ((1 - p.y) / 2) * height };
+  });
+  await option(page, 'Dark').click();
+  await blind();
+  await page.mouse.click(fettle.x, fettle.y);
+  await expect.poll(() => page.evaluate(() => window.__map!.stations.current)).toBe('fettle');
+  await expect(html).toHaveAttribute('data-theme', 'dark');
+  await expect(html).not.toHaveClass(/theme-vt/);
+  // Both presses came while a blind ran, and reached <html> first.
+  expect(await page.evaluate(() => window.__presses)).toEqual(['-', 'HTML', '-', 'HTML']);
 });
 
 test('during the arrival a choice switches at once (no blind to freeze it), and after it the blind is back', async ({ page }) => {

@@ -607,10 +607,8 @@ test.describe('6, the colophon lamp', () => {
       .toBe('#121214');
     expect(await found(page)).toEqual(['lamp']);
 
-    // The blind is a View Transition on the real clock (400 ms), not the manual one, and while it
-    // runs Chromium sends every press to <html>, so a pull then never reaches the lamp. A slow
-    // software renderer used to spend that long in the advance below; a GPU doesn't.
-    await expect(page.locator('html')).not.toHaveClass(/\btheme-vt\b/);
+    // The blind runs on the real clock (400 ms), not the manual one, so on a GPU it's still coming
+    // down here: the second pull goes through it (src/theme-switch.ts, passThrough).
     await advance(page, 1.5);
     await click(page, 'colophon', 'lamp_glow');
     await expect.poll(() => theme(page)).toEqual({ html: 'light', pressed: 'light', saved: 'light' });

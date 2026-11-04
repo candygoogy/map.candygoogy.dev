@@ -361,7 +361,9 @@ export function createLabels(
 
   function measure(): void {
     for (const l of labels) {
-      l.width = l.button.offsetWidth;
+      // Unrounded, as the height below: offsetWidth's 44 for tellall's 43.83 px name left its
+      // target (no wider than the name past 44) 0.17 px short (2026-11-04).
+      l.width = l.button.getBoundingClientRect().width;
       // The status line from the button's left edge: its inset, its words now, the same after.
       const after = parseFloat(getComputedStyle(l.button).paddingRight) || 0;
       l.inner = Math.max(l.width, Math.ceil(l.status.offsetLeft + l.status.getBoundingClientRect().width + after));

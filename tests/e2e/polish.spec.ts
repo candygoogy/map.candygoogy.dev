@@ -70,6 +70,8 @@ test('axe: zero violations in light and dark at overview and at three stations',
 const targets = (page: Page) =>
   page.evaluate(() => {
     const out: { name: string; width: number; height: number; cut: boolean }[] = [];
+    /** Each label's target as laid (with its out entry), and its uncut 44 px box. */
+    const laid: { at: number; box: number[]; uncut: number[] }[] = [];
     for (const el of document.querySelectorAll<HTMLElement>('a[href], button, input, select, textarea, [tabindex]:not([tabindex="-1"])')) {
       // A hidden label crowded onto another model (data-nohit, the homelab cluster) has no
       // target at all: its own node takes the tap (WCAG 2.5.8's equivalent-control exception).
@@ -103,6 +105,7 @@ const targets = (page: Page) =>
         const cx = (own.left + own.right) / 2;
         const cy = (own.top + own.bottom) / 2;
         const half = Math.max(own.width, 44) / 2;
+        laid.push({ at: out.length, box: [left, top, right, bottom], uncut: [cx - half, cy - 22, cx + half, cy + 22] });
         cut = nodes.all().some((n) => {
           if (n.id === go) return false;
           const xs: number[] = [];
@@ -119,6 +122,11 @@ const targets = (page: Page) =>
       }
       out.push({ name, width: right - left, height: bottom - top, cut });
     }
+    // labels.ts cuts a target back off another label's target it would meet too (on a phone's
+    // quiet overview no two targets ever meet), never under 24 px either: phantomlink-sensors'
+    // under candygoogy-bot's (2026-11-04). Its uncut box has to meet one as laid.
+    const meets = (a: number[], b: number[]) => a[0]! < b[2]! && a[2]! > b[0]! && a[1]! < b[3]! && a[3]! > b[1]!;
+    for (const l of laid) if (laid.some((o) => o !== l && meets(l.uncut, o.box))) out[l.at]!.cut = true;
     return out;
   });
 

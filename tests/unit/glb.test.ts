@@ -21,7 +21,7 @@ const SUB_NODE_BYTES = 130_000;
 const ORIGIN_BYTES = 300_000;
 const EXIT_BYTES = 180_000;
 const PARCEL_BYTES = 120_000;
-const DUCK_BYTES = 120_000; // a hidden node; the 4.0 MB total
+const DUCK_BYTES = 120_000; // a hidden node; the 4.75 MB total
 
 const scriptIds = () =>
   readdirSync(MODELS)

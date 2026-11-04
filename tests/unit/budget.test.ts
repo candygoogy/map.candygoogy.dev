@@ -12,11 +12,12 @@ import { beforeAll, describe, expect, test } from 'vitest';
 import { ROOT } from './helpers/blender';
 
 const KB = 1000;
-// The owner's model budgets (2026-10-21 afternoon): all models ≤ 4.0 MB, and with
-// the moments' chunks, everything after the arrival ≤ 4.1 MB (raised from 2.6 and 2.7 to 3.8
-// and 3.9; then raised on the owner's word, 2026-10-22, for the switch's power brick).
-const MODELS_MAX = 4_000_000;
-const AFTER_ARRIVAL_MAX = 4_100_000;
+// The owner's model budgets (2026-10-21 afternoon): all models ≤ 4.75 MB, and with
+// the moments' chunks, everything after the arrival ≤ 4.85 MB (raised from 2.6 and 2.7 to 3.8
+// and 3.9; on the owner's word, 2026-10-22, to 4.0 and 4.1 for the switch's power brick; and
+// on the owner's word, 2026-11-04, for the featherplay, tellall and phantomlink-sensors stations).
+const MODELS_MAX = 4_750_000;
+const AFTER_ARRIVAL_MAX = 4_850_000;
 const FIRST_LOAD_MAX = 210 * KB;
 // The meshopt decoder's scalar wasm build, which the runtime fetches only where there's no wasm
 // SIMD (Safari before 16.4; src/vendor/meshopt_decoder.js).
@@ -38,7 +39,7 @@ function shippedModels(): { file: string; bytes: number }[] {
     .map((file) => ({ file, bytes: statSync(join(dir, file)).size }));
 }
 
-test('all models fit in 4.0 MB', () => {
+test('all models fit in 4.75 MB', () => {
   const models = shippedModels();
   const total = models.reduce((sum, m) => sum + m.bytes, 0);
   console.info(`models: ${models.length} GLBs, ${total} bytes`);
@@ -209,7 +210,7 @@ describe('the JS budgets', () => {
     expect(sum(notFound)).toBeLessThanOrEqual(8 * KB);
   });
 
-  test('everything after the arrival (the models and the moments) is within 4.1 MB', () => {
+  test('everything after the arrival (the models and the moments) is within 4.85 MB', () => {
     const models = shippedModels().reduce((s, m) => s + m.bytes, 0);
     console.info(`after the arrival: ${((models + sum(lazy)) / KB).toFixed(1)} kB`);
     expect(models + sum(lazy)).toBeLessThanOrEqual(AFTER_ARRIVAL_MAX);

@@ -396,7 +396,7 @@ test.describe('5, the key under the mat', () => {
       const { director, advance } = window.__map!;
       for (let i = 0; i < 600 && director.state !== 'overview'; i++) advance(1 / 60);
     });
-    await expect(page.locator('#welcome')).not.toHaveClass(/sr-only/);
+    await expect(page.locator('#welcome')).not.toHaveClass(/\bsr-only\b/);
     await expect(value).toBeVisible();
     await expect(value).toHaveText('1 of a few');
   });
@@ -503,7 +503,7 @@ test.describe('3, the plane goes to work', () => {
       await advance(page, 1);
       expect(await where(page)).toEqual(['station', 'server', '#server']);
       await expect(page.locator('button.label[data-go="server"]')).toHaveAttribute('aria-current', 'location');
-      await expect(page.locator('section.station#server')).not.toHaveClass(/sr-only/);
+      await expect(page.locator('section.station#server')).not.toHaveClass(/\bsr-only\b/);
       // And the plane flies home, back on its stand; the camera stays at the server.
       await advance(page, 6);
       const t = await trip(page);
@@ -562,7 +562,7 @@ test.describe('3, the plane goes to work', () => {
     await expect.poll(() => trip(page).then((t) => t.toServer !== null && t.toServer < 0.3), { timeout: 3000 }).toBe(true);
     expect((await trip(page)).onStand).toBe(false);
     expect(await where(page)).toEqual(['station', 'server', '#server']); // no ride: a cut
-    await expect(page.locator('section.station#server')).not.toHaveClass(/sr-only/);
+    await expect(page.locator('section.station#server')).not.toHaveClass(/\bsr-only\b/);
     await expect.poll(() => trip(page).then((t) => !t.flying && t.onStand), { timeout: 8000 }).toBe(true);
     expect(await found(page)).toEqual(['plane-to-work']);
   });

@@ -207,7 +207,7 @@ test('a press while the blind comes down isn’t lost: the pill takes it, and so
   await expect(option(page, 'Light')).toHaveAttribute('aria-pressed', 'true');
   await expect(html).toHaveAttribute('data-theme', 'light');
   await expect.poll(() => clearColour(page)).toBe('#f4f4f5');
-  await expect(html).not.toHaveClass(/theme-vt/);
+  await expect(html).not.toHaveClass(/\btheme-vt\b/);
 
   // The map: a click on Fettle while Dark comes down flies there.
   const fettle = await page.evaluate(() => {
@@ -222,7 +222,7 @@ test('a press while the blind comes down isn’t lost: the pill takes it, and so
   await page.mouse.click(fettle.x, fettle.y);
   await expect.poll(() => page.evaluate(() => window.__map!.stations.current)).toBe('fettle');
   await expect(html).toHaveAttribute('data-theme', 'dark');
-  await expect(html).not.toHaveClass(/theme-vt/);
+  await expect(html).not.toHaveClass(/\btheme-vt\b/);
   // Both presses came while a blind ran, and reached <html> first.
   expect(await page.evaluate(() => window.__presses)).toEqual(['-', 'HTML', '-', 'HTML']);
 });
@@ -255,8 +255,30 @@ test('a wheel turned while the blind comes down zooms the map', async ({ page })
   // The zoom eases on the manual clock (its chunk's fetch is real time).
   await expect.poll(() => page.evaluate(() => (window.__map!.advance(0.2, 1 / 30), window.__map!.director.zoom))).toBeLessThan(0.9);
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-  await expect(page.locator('html')).not.toHaveClass(/theme-vt/);
+  await expect(page.locator('html')).not.toHaveClass(/\btheme-vt\b/);
   expect(await page.evaluate(() => window.__presses)).toEqual(['HTML']);
+
+  // The panel: a wheel over it while Light comes down scrolls it (smoothly, so polled), and the
+  // page itself doesn't scroll.
+  const over = { x: 1200, y: 600 };
+  const scrolled = () =>
+    page.evaluate(({ x, y }) => {
+      for (let el = document.elementFromPoint(x, y); el && el !== document.documentElement; el = el.parentElement) {
+        const s = getComputedStyle(el);
+        if (/auto|scroll/.test(s.overflowY) && el.scrollHeight > el.clientHeight) return el.scrollTop;
+      }
+      return null;
+    }, over);
+  const top = await scrolled();
+  expect(top, 'a panel that scrolls under the pointer').not.toBeNull();
+  await option(page, 'Light').click();
+  await page.waitForFunction(() => !!document.activeViewTransition && document.documentElement.classList.contains('theme-vt'));
+  await page.mouse.move(over.x, over.y);
+  await page.mouse.wheel(0, 200);
+  await expect.poll(scrolled).toBeGreaterThan(top!);
+  expect(await page.evaluate(() => window.scrollY)).toBe(0);
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  expect(await page.evaluate(() => window.__presses)).toEqual(['HTML', 'HTML']);
 });
 
 test('during the arrival a choice switches at once (no blind to freeze it), and after it the blind is back', async ({ page }) => {
@@ -297,7 +319,7 @@ test('during the arrival a choice switches at once (no blind to freeze it), and 
   await option(page, 'Light').click();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
   await expect.poll(() => page.evaluate(() => window.__transitions)).toBe(1);
-  await expect(page.locator('html')).not.toHaveClass(/theme-vt/);
+  await expect(page.locator('html')).not.toHaveClass(/\btheme-vt\b/);
 });
 
 test('the choice is kept across a reload and is on before the first paint', async ({ page }) => {

@@ -1956,7 +1956,7 @@ export function createDirector(
       const draw = curve(id).getLength() / (top ? tuning.linkDrawSpeed : tuning.subLinkDrawSpeed);
       // An origin link never starts before the arrival (or the reboot) does: one whose node
       // lands sooner than its length takes draws faster instead, so it isn't part drawn on the
-      // first frame (tellall's, 10 units long, lands at 0.96 s; 2026-11-04).
+      // first frame (tellall's, 10 units long, lands at 0.96 s; 2026-11-04; about 9 since it moved).
       const after = top ? 0 : (reach.get(parent(id)) ?? -Infinity);
       const start = Math.max(reach.get(id)! - draw, after);
       const span = top && start > reach.get(id)! - draw ? Math.max(reach.get(id)! - start, 1e-3) : draw;

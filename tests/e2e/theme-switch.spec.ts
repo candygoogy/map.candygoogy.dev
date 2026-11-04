@@ -227,6 +227,38 @@ test('a press while the blind comes down isn’t lost: the pill takes it, and so
   expect(await page.evaluate(() => window.__presses)).toEqual(['-', 'HTML', '-', 'HTML']);
 });
 
+test('a wheel turned while the blind comes down zooms the map', async ({ page }) => {
+  // The wheel lands on <html> through the overlay too, so the zoom was lost; now it ends the
+  // blind and goes on to the map, which cancels it, so the page doesn't scroll either.
+  await page.addInitScript(() => {
+    // Each real wheel: what it was sent to, if a View Transition was running then.
+    window.__presses = [];
+    const note = (e: WheelEvent) => void (e.isTrusted && window.__presses!.push(document.activeViewTransition ? (e.target as Element).nodeName : '-'));
+    addEventListener('wheel', note, { capture: true, passive: true });
+  });
+  await page.emulateMedia({ colorScheme: 'light' });
+  await open(page);
+  // A point on the empty floor: the canvas itself, no label over it.
+  const floor = await page.evaluate(() => {
+    const canvas = window.__map!.stage.renderer.domElement;
+    for (let y = 600; y < 860; y += 10) for (let x = 100; x < 900; x += 10) if (document.elementFromPoint(x, y) === canvas) return { x, y };
+    return null;
+  });
+  expect(floor).not.toBeNull();
+  const zoom = () => page.evaluate(() => window.__map!.director.zoom);
+  expect(await zoom()).toBe(1);
+
+  await option(page, 'Dark').click();
+  await page.waitForFunction(() => !!document.activeViewTransition && document.documentElement.classList.contains('theme-vt'));
+  await page.mouse.move(floor!.x, floor!.y);
+  await page.mouse.wheel(0, -200);
+  // The zoom eases on the manual clock (its chunk's fetch is real time).
+  await expect.poll(() => page.evaluate(() => (window.__map!.advance(0.2, 1 / 30), window.__map!.director.zoom))).toBeLessThan(0.9);
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expect(page.locator('html')).not.toHaveClass(/theme-vt/);
+  expect(await page.evaluate(() => window.__presses)).toEqual(['HTML']);
+});
+
 test('during the arrival a choice switches at once (no blind to freeze it), and after it the blind is back', async ({ page }) => {
   await watch(page);
   await page.emulateMedia({ colorScheme: 'light' });

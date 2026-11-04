@@ -17,8 +17,8 @@
 // - Phone header (under 900px, in 3D): one icon button, the pressed option; a tap cycles.
 // - Every wipe starts here, the colophon lamp's pull too (src/moments/lamp.ts presses the pill's
 //   option), so a skipped one's rejected promises are caught here for both.
-// - Nothing is lost to a wipe: while one runs Chromium sends every press to <html> (the
-//   transition's overlay), so a press there ends it at once and goes on to what it was aimed at
+// - Nothing is lost to a wipe: while one runs Chromium sends every press and wheel to <html>
+//   (the transition's overlay), so one there ends it at once and goes on to what it was aimed at
 //   (passThrough, below). Keys go to the focused element and never needed it.
 
 export type Choice = 'auto' | 'light' | 'dark';
@@ -93,14 +93,19 @@ function storage(): Store | undefined {
  *  - the browser still counts the press as one on <html>: its mousedown would move focus to the
  *    page and start a text selection there instead, so it focuses what a press on the target
  *    would have (a button or link, else nothing), and the click, which lands on <html>, is sent
- *    on to the target (a tap's click is hit-tested afresh, after the wipe, and needs nothing).
- *  `wipe` is the wipe running now, if any. */
-function passThrough(doc: Document, wipe: () => ViewTransition | null): void {
+ *    on to the target (a tap's click is hit-tested afresh, after the wipe, and needs nothing);
+ *  - a wheel goes the same way, to the map's zoom. A copy has no default action and the real
+ *    one's is aimed at <html>: a wheel the copy's target cancels (the map's zoom) cancels the
+ *    real one, Ctrl with it stays the browser's zoom, and one taken by no one scrolls the box
+ *    under it (the panel) here.
+ *  `wipe` is the wipe running now, if any. Returns what to call as one starts. */
+function passThrough(doc: Document, wipe: () => ViewTransition | null): (vt: ViewTransition) => void {
   const root = doc.documentElement;
+  const win = doc.defaultView ?? window;
   const on = <K extends 'pointerdown' | 'mousedown' | 'pointerup' | 'pointercancel' | 'click'>(
     type: K,
     f: (e: WindowEventMap[K]) => void,
-  ) => (doc.defaultView ?? window).addEventListener(type, f, true);
+  ) => win.addEventListener(type, f, true);
   /** A copy of the event, sent to `el` (untrusted: the listeners here let it by). */
   const resend = <E extends MouseEvent>(e: E, el: Element) =>
     el.dispatchEvent(new (e.constructor as new (type: string, init: E) => E)(e.type, e));
@@ -145,6 +150,52 @@ function passThrough(doc: Document, wipe: () => ViewTransition | null): void {
     e.stopImmediatePropagation();
     resend(e, to);
   });
+
+  // A wheel listener here holds up the page's scrolling (it may cancel it), so it's on only from
+  // a wipe's start until wheels land where they're aimed again: a wheel transaction (one turn's
+  // events, latched on the target of its first) can keep sending them to <html> after the wipe.
+  let turned = false; // a wheel went through the wipe
+  const onWheel = (e: WheelEvent): void => {
+    const vt = wipe();
+    if (!e.isTrusted) return;
+    if (e.target !== root) {
+      if (!vt) win.removeEventListener('wheel', onWheel, true);
+      return;
+    }
+    vt?.skipTransition();
+    const el = doc.elementFromPoint(e.clientX, e.clientY);
+    if (!el || el === root) return;
+    turned = true;
+    e.stopImmediatePropagation();
+    if (!resend(e, el)) return e.preventDefault(); // the map's zoom: no page scroll either
+    if (e.ctrlKey) return; // the browser's zoom, as without the wipe
+    // Taken by no one, it scrolls what it would have: the box under it that scrolls that way
+    // (the panel). The browser, which hit-tested <html>, would scroll the page instead.
+    const y = Math.abs(e.deltaY) >= Math.abs(e.deltaX);
+    for (let box: Element | null = el; box && box !== root; box = box.parentElement) {
+      const style = getComputedStyle(box);
+      const scrolls = y
+        ? /auto|scroll/.test(style.overflowY) && box.scrollHeight > box.clientHeight
+        : /auto|scroll/.test(style.overflowX) && box.scrollWidth > box.clientWidth;
+      if (!scrolls) continue;
+      e.preventDefault();
+      const unit = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? box.clientHeight : 1; // lines, pages
+      // Smooth, as the browser's own wheel scroll is (each step retargets the one in flight);
+      // at once under reduced motion.
+      const still = win.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      box.scrollBy({ left: e.deltaX * unit, top: e.deltaY * unit, behavior: still ? 'instant' : 'smooth' });
+      return;
+    }
+  };
+  return (vt) => {
+    turned = false;
+    win.addEventListener('wheel', onWheel, { capture: true, passive: false });
+    const done = (): void => {
+      const now = wipe();
+      if (!turned && (now === vt || !now)) win.removeEventListener('wheel', onWheel, true);
+    };
+    void vt.finished.then(done, done);
+  };
 }
 
 /** Runs every [data-theme-switch] on the page. */
@@ -158,7 +209,7 @@ export function initThemeSwitch(doc: Document = document): void {
   const syncs: (() => void)[] = [];
   // The wipe running now, if any (one at a time on the page: a new one ends it).
   let active: ViewTransition | null = null;
-  passThrough(doc, () => active);
+  const wiping = passThrough(doc, () => active);
 
   const choose = (value: Choice): void => {
     applyChoice(root, meta, value);
@@ -225,6 +276,7 @@ export function initThemeSwitch(doc: Document = document): void {
           if (run === latest) choose(value);
         });
         active = vt;
+        wiping(vt);
         // A wipe skipped (a newer one, or a change that needs none: a fast change of mind, a
         // fast lamp pull) rejects `ready`; one whose update failed rejects the other two. Each
         // is handled, never an uncaught page error (the audit's item 13).

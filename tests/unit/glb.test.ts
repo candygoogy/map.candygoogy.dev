@@ -186,6 +186,49 @@ describe('glb', () => {
     expect(glb.bytes).toBeLessThanOrEqual(MODEL_BYTES);
   });
 
+  // The three products of 2026-11-04 have the plain clip set and one poke each, which moves
+  // parts, never the whole model (the owner's test notes): featherplay's woofer thumps and the
+  // feather lifts off the cabinet; tellall's lens swings over the prints and the pin pops up;
+  // phantomlink-sensors' needle swings up and the fans spin.
+  const NEW_PRODUCTS = [
+    // A tabletop radio: cabinet, woofer, dial and knobs, the feather on top. No lamp.
+    { id: 'featherplay', materials: ['body', 'detail', 'accent', 'paper', 'shadow'], lamp: false, poke: ['feather', 'woofer'] },
+    // Two prints on a light box under a magnifier on a gooseneck, with a hidden pin.
+    { id: 'tellall', materials: ['body', 'detail', 'accent', 'paper', 'lamp', 'shadow'], lamp: true, poke: ['lens', 'pin'] },
+    // A graphics card on a stand with its power plug and a gauge.
+    { id: 'phantomlink-sensors', materials: ['body', 'detail', 'accent', 'paper', 'lamp', 'shadow'], lamp: true, poke: ['needle', 'fan_1'] },
+  ] as const;
+  for (const { id, materials, lamp, poke } of NEW_PRODUCTS) {
+    test(`${id} meets the pipeline contract, with its clips and a poke that moves its parts`, async () => {
+      const glb = await inspectGlb(join(PUBLIC, `${id}.glb`));
+
+      expect(glb.clips).toEqual(expect.arrayContaining(['appear', 'arrive', 'idle', 'poke', 'off', 'on']));
+      const bytes = readFileSync(join(PUBLIC, `${id}.glb`));
+      const gltf = JSON.parse(bytes.subarray(20, 20 + bytes.readUInt32LE(12)).toString('utf8')) as {
+        nodes: { name?: string }[];
+        animations: { name: string; channels: { target: { node: number; path: string } }[] }[];
+      };
+      const moved = gltf.animations.find((a) => a.name === 'poke')!.channels.map((c) => gltf.nodes[c.target.node]!.name);
+      expect(moved).toEqual(expect.arrayContaining([...poke]));
+      expect(moved).not.toContain(id);
+      for (const m of glb.materials) expect(ROLES).toContain(m);
+      expect(glb.materials).toEqual(expect.arrayContaining([...materials]));
+      if (!lamp) expect(glb.materials).not.toContain('lamp');
+      expect(new Set(glb.materials).size).toBe(glb.materials.length);
+      expect(glb.triangles).toBeGreaterThan(0);
+      expect(glb.triangles).toBeLessThanOrEqual(MODEL_TRIANGLES);
+
+      for (const [name, sizes] of Object.entries(glb.materialTextures)) {
+        const want = name === 'shadow' ? [128, 128] : [1024, 1024];
+        expect(sizes.length, `${name} has a texture`).toBeGreaterThan(0);
+        for (const s of sizes) expect(s, `${name} texture size`).toEqual(want);
+      }
+      for (const s of glb.textureSizes) expect([[1024, 1024], [128, 128]]).toContainEqual(s);
+
+      expect(glb.bytes).toBeLessThanOrEqual(MODEL_BYTES);
+    });
+  }
+
   // The desktop (a homelab sub-node): the PA602 with the build behind its glass and the Steam
   // Controller beside it. poke_panel swings the glass open and holds, poke_panel_tidy shuts it;
   // poke_controller buzzes the controller and plays its sticks; the fans spin in arrive, idle,

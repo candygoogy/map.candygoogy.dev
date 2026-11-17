@@ -186,7 +186,7 @@ describe('glb', () => {
     expect(glb.bytes).toBeLessThanOrEqual(MODEL_BYTES);
   });
 
-  // The three products of 2026-11-04 have the plain clip set and one poke each, which moves
+  // The three products of 2026-11-04 (and the two side projects of 2026-11-17) have the plain clip set and one poke each, which moves
   // parts, never the whole model (the owner's test notes): featherplay's woofer thumps and the
   // feather lifts off the cabinet; tellall's lens swings over the prints and the pin pops up;
   // phantomlink-sensors' needle swings up and the fans spin.
@@ -197,6 +197,13 @@ describe('glb', () => {
     { id: 'tellall', materials: ['body', 'detail', 'accent', 'paper', 'lamp', 'shadow'], lamp: true, poke: ['lens', 'pin'] },
     // A graphics card on a stand with its power plug and a gauge.
     { id: 'phantomlink-sensors', materials: ['body', 'detail', 'accent', 'paper', 'lamp', 'shadow'], lamp: true, poke: ['needle', 'fan_1'] },
+    // Two side projects (2026-11-17). An M.2 SSD on a stand, a padlock locked round a post through
+    // its screw notch, a file card beside it: the card is tossed at the drive and bounces off, the
+    // padlock jumps and its shackle clicks.
+    { id: 'atieclxx-fix', materials: ['body', 'detail', 'accent', 'paper', 'lamp', 'shadow'], lamp: true, poke: ['write', 'padlock'] },
+    // An open book on a cradle, a loop drawn on one page and a step diagram on the other: a bead
+    // runs round the loop and the page turns.
+    { id: 'read-the-loop', materials: ['body', 'detail', 'accent', 'paper', 'lamp', 'shadow'], lamp: true, poke: ['leaf', 'marker'] },
   ] as const;
   for (const { id, materials, lamp, poke } of NEW_PRODUCTS) {
     test(`${id} meets the pipeline contract, with its clips and a poke that moves its parts`, async () => {

@@ -146,6 +146,24 @@ export const CUES: Record<string, Hit[]> = {
     { at: 0, sound: 'fans', length: F(32) },
     { at: F(10), sound: 'tap', gain: -14 },
   ],
+  // atieclxx-fix.py clip_poke: a write tries to land. The card is tossed up (1) and hits the first
+  // flash package (11), refused; the padlock jumps on its post as it hits and clatters back (to
+  // 23), its shackle clicking (13); the card skips back to its spot (22).
+  'atieclxx-fix poke': [
+    { at: F(1), sound: 'flick', gain: -8 },
+    { at: F(11), sound: 'knock', gain: -2 },
+    { at: F(13), sound: 'latch', gain: -6 },
+    { at: F(18), sound: 'clack', gain: -8 },
+    { at: F(22), sound: 'pat', gain: -10 },
+  ],
+  // read-the-loop.py clip_poke: a bead pops out of the loop's tail (0-3) and runs once round the
+  // ring (5-22); the leaf lifts (23) and turns over to the left page, landing gutter first (37).
+  'read-the-loop poke': [
+    { at: F(2), sound: 'tap', gain: -14 },
+    { at: F(5), sound: 'slide', gain: -14, length: F(17) },
+    { at: F(25), sound: 'riffle', gain: -4 },
+    { at: F(37), sound: 'pat', gain: -10 },
+  ],
   // candygoogy-bot.py clip_poke: off the pin (2), the barrel roll (4-17), back onto the pin (19).
   'candygoogy-bot poke': [
     { at: F(4), sound: 'whoosh', length: F(13) },

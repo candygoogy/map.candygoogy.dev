@@ -211,6 +211,7 @@ describe('the cues', () => {
   it('are the approved list’s sounds, and nothing for traffic, the camera’s flights or hover', () => {
     expect(Object.keys(CUES).sort()).toEqual(
       [
+        'atieclxx-fix poke', // the write knocked back, and the padlock's clatter
         'candygoogy-bot arrive', // the paper plane's launch, its loop and its touchdown
         'candygoogy-bot poke', // its barrel roll
         'candygoogy-bot poke_stand', // the launcher's kick
@@ -240,6 +241,7 @@ describe('the cues', () => {
         'plane out',
         'power post',
         'power reset', // the RCD's reset, as Siel Eolie plays `on` (its `poke_test_tidy` never plays)
+        'read-the-loop poke', // the bead round the loop, and the page turning
         'siel-eolie poke',
         'siel-eolie poke_test',
         'switch poke_cable', // the cable unplugged, and plugged back in

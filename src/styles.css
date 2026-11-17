@@ -1180,6 +1180,9 @@ html.theme-vt::view-transition-new(root) {
     animation:
       panel-more linear both,
       panel-less linear both;
+    /* auto: each fills its scroll range. In the shorthand the build's minifier wrote it out as
+       0s, so both sat at their end at rest and the top faded unscrolled (2026-11-17). */
+    animation-duration: auto;
     animation-timeline: scroll(self);
     animation-range: normal, 0 2.5rem;
   }

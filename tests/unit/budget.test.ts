@@ -61,6 +61,7 @@ describe('the JS budgets', () => {
   let notFoundImports: string[] = [];
   let scalarChunks: Rolldown.OutputChunk[] = [];
   let indexHtml = '';
+  let css = '';
   let entry: Rolldown.OutputChunk | undefined;
   let runtime: Rolldown.OutputChunk | undefined;
 
@@ -82,6 +83,10 @@ describe('the JS budgets', () => {
       else process.env.NODE_ENV = nodeEnv;
     }
     const files = new Map(out.output.map((o) => [o.fileName, o]));
+    css = out.output
+      .filter((o): o is Rolldown.OutputAsset => o.type === 'asset' && o.fileName.endsWith('.css'))
+      .map((o) => String(o.source))
+      .join('\n');
     const html = out.output.find((o) => o.fileName === 'index.html');
     if (html?.type !== 'asset') throw new Error('budget: the build has no index.html');
 
@@ -210,6 +215,17 @@ describe('the JS budgets', () => {
     expect(notFoundImports).toEqual([]);
     expect(firstLoad.some((j) => notFound.some((n) => n.file === j.file))).toBe(false);
     expect(sum(notFound)).toBeLessThanOrEqual(8 * KB);
+  });
+
+  // The panel's scroll fade (styles.css, --less and --more) as shipped: its scroll-driven
+  // animations keep an auto duration, so each fills its scroll range. Written in the shorthand,
+  // the minifier put out 0s and both sat at their end, so the panel's top faded unscrolled on the
+  // live site (2026-11-17) while the dev server, unminified, was fine.
+  test("the built CSS keeps the panel fade's auto duration", () => {
+    const rule = /[^{}]*animation-timeline:\s*scroll\(self\)[^{}]*/.exec(css)?.[0] ?? '';
+    expect(rule, 'the scroll-driven rule').toContain('panel-less');
+    expect(rule).toMatch(/animation-duration:\s*auto/);
+    expect(rule).not.toMatch(/animation-duration:\s*0s/);
   });
 
   test('everything after the arrival (the models and the moments) is within 4.85 MB', () => {

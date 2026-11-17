@@ -118,7 +118,7 @@ test("a right-drag on the empty floor turns the overview about the network's mid
   expect(at.room).toBeGreaterThan(60);
   expect(await page.evaluate(() => window.__map!.stage.renderer.domElement.style.cursor)).toBe('');
   await page.mouse.move(at.x, at.y);
-  expect(await page.evaluate(() => window.__map!.stage.renderer.domElement.style.cursor)).toBe('grab');
+  expect(await page.evaluate(() => window.__map!.stage.renderer.domElement.style.cursor)).toBe('move');
 
   // 100 px to the right: the floor goes with the pointer, so the camera swings left (a negative turn).
   const w = await visibleWidth(page);
@@ -126,7 +126,7 @@ test("a right-drag on the empty floor turns the overview about the network's mid
   await page.mouse.down({ button: 'right' });
   await page.mouse.move(at.x + 100, at.y, { steps: 10 });
   await advance(page, 1 / 60);
-  expect(await page.evaluate(() => window.__map!.stage.renderer.domElement.style.cursor)).toBe('grabbing');
+  expect(await page.evaluate(() => window.__map!.stage.renderer.domElement.style.cursor)).toBe('move');
   const t1 = await turn(page);
   const expected = ((100 - tuning.dragThresholdPx) / w) * tuning.turn.overviewWidthDeg;
   expect(t1).toBeLessThan(0);
@@ -222,7 +222,7 @@ test('a left drag on the empty floor pans the overview: the floor under the poin
     const p = await onScreen(page, grabbed);
     return Math.hypot(p.x - (at.x - 120), p.y - (at.y - 60));
   }).toBeLessThan(1.5);
-  expect(await page.evaluate(() => window.__map!.stage.renderer.domElement.style.cursor)).toBe('grabbing');
+  expect(await page.evaluate(() => window.__map!.stage.renderer.domElement.style.cursor)).toBe('move');
   expect(await turn(page)).toBe(0);
   expect(await zoomNow(page)).toBe(z);
   const moved = await lookNow(page);
@@ -442,7 +442,7 @@ test('a floor drag mid-flight turns and pans nothing (the press is the boost the
   expect(await page.evaluate(() => window.__map!.director.state)).toBe('overview');
   const home = await page.evaluate(() => window.__map!.director.home.target.toArray());
   expect(await lookNow(page)).toEqual(home); // landed where it always does
-  expect(await page.evaluate(() => window.__map!.stage.renderer.domElement.style.cursor)).not.toBe('grab');
+  expect(await page.evaluate(() => window.__map!.stage.renderer.domElement.style.cursor)).not.toBe('move');
 });
 
 test('the labels follow the turn and the pan', async ({ page }) => {

@@ -385,13 +385,13 @@ export function createReceipt(deps: ReceiptDeps): Receipt {
       // Over the strip, it's something to take hold of (pointer.ts has the cursor elsewhere).
       if (e.pointerType === 'mouse' && onPaper(e)) {
         e.stopImmediatePropagation();
-        canvasEl.style.cursor = 'grab';
+        canvasEl.style.cursor = 'move'; // the system's own, as the floor's (pointer.ts)
       }
       return;
     }
     if (e.pointerId !== pull.id) return;
     stop(e);
-    canvasEl.style.cursor = 'grabbing';
+    canvasEl.style.cursor = 'move';
     pull.units = (pull.y - e.clientY) / pull.perUnit;
     give(pull.units);
   }

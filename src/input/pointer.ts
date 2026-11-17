@@ -40,7 +40,10 @@
 //   before), and both fingers go to opts.onPinch on every move, then null as one lifts. The
 //   other finger then does nothing until it lifts too.
 // - Mouse hover marks a node (its ground ring goes --soft, links.ts; it no longer lifts) and
-//   shows `pointer`, empty floor `grab` while the map can move; a press shows `grabbing`.
+//   shows `pointer`, empty floor `move` while the map can move, and a press too. Not `grab`
+//   and `grabbing`: Chromium draws those itself on Windows, a white hand with a hairline edge
+//   that was lost on the light floor (the owner, 2026-11-17); `move` is the system's own cursor,
+//   outlined, and follows the visitor's cursor size and contrast settings.
 //   Touch has no hover, so a press marks the node and letting go clears it. The canvas has
 //   `touch-action: none` (styles.css), so a drag on a phone doesn't scroll the page.
 
@@ -58,7 +61,7 @@ export interface PointerOptions {
   onSelect(id: string, part: string | null): void;
   /** A drag on the empty floor: CSS px of horizontal travel since the press, then null as it ends. False: the map can't turn now. */
   onTurn?(dx: number | null): boolean;
-  /** Whether the map can turn now (for the `grab` cursor). */
+  /** Whether the map can turn now (for the `move` cursor). */
   canTurn?(): boolean;
   /** A drag that pans the map: where it was pressed and where it is now (client px), on each move; null as it lets go. */
   onPan?(from: Point | null, to?: Point): void;
@@ -194,7 +197,7 @@ export function createPointer(
 
   function cursor(): void {
     const turn = opts.canTurn?.() || opts.canPan?.();
-    canvas.style.cursor = press ? (press.node || turn ? 'grabbing' : '') : hovered ? 'pointer' : turn ? 'grab' : '';
+    canvas.style.cursor = press ? (press.node || turn ? 'move' : '') : hovered ? 'pointer' : turn ? 'move' : '';
   }
 
   /** Both fingers to opts.onPinch. */

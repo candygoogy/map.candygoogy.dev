@@ -27,10 +27,11 @@ describe('powerTimeline', () => {
     // The cluster's devices go dark before their hub.
     expect(t.dark.get('laptop')!).toBeLessThan(t.dark.get('homelab')!);
     expect(t.dark.get('ap')!).toBeLessThan(t.dark.get('homelab')!);
-    // 1.58 s with the cluster's five, 1.82 s since featherplay, tellall and phantomlink-sensors.
-    expect(t.dark.get('fettle')).toBeCloseTo(0.38 + 0.08 * 18);
+    // 1.58 s with the cluster's five, 1.82 s since featherplay, tellall and phantomlink-sensors,
+    // 1.98 s since atieclxx-fix and read-the-loop (2026-11-17).
+    expect(t.dark.get('fettle')).toBeCloseTo(0.38 + 0.08 * 20);
     expect(t.dark.get('origin')).toBeCloseTo(0.3);
-    expect(t.reboot).toBeCloseTo(1.82 + 1.2);
+    expect(t.reboot).toBeCloseTo(1.98 + 1.2);
   });
 
   // The cluster's tree (2026-10-21): station order puts each hub before what hangs off it, so in
@@ -47,13 +48,13 @@ describe('powerTimeline', () => {
     expect(t.reboot).toBeCloseTo(1.5);
   });
 
-  // Fifteen since featherplay, tellall and phantomlink-sensors (2026-11-04; it was twelve, fettle
-  // at 1.18 s and the reboot at 2.38 s).
-  test('without the cluster (fifteen stations) fettle goes dark at 1.42 s and the reboot is at 2.62 s', () => {
-    const fifteen = ids.filter((id) => !['ap', 'desktop', 'server', 'switch', 'laptop'].includes(id));
-    const t = powerTimeline(fifteen, false);
-    expect(t.dark.get('fettle')).toBeCloseTo(1.42);
-    expect(t.reboot).toBeCloseTo(2.62);
+  // Seventeen since atieclxx-fix and read-the-loop (2026-11-17; fifteen since featherplay, tellall
+  // and phantomlink-sensors, fettle at 1.42 s and the reboot at 2.62 s; twelve before, 1.18 s and 2.38 s).
+  test('without the cluster (seventeen stations) fettle goes dark at 1.58 s and the reboot is at 2.78 s', () => {
+    const seventeen = ids.filter((id) => !['ap', 'desktop', 'server', 'switch', 'laptop'].includes(id));
+    const t = powerTimeline(seventeen, false);
+    expect(t.dark.get('fettle')).toBeCloseTo(1.58);
+    expect(t.reboot).toBeCloseTo(2.78);
   });
 });
 
@@ -163,7 +164,9 @@ describe('the RCD', () => {
     };
     const resets = () => vi.mocked(cue).mock.calls.filter((c) => c[0] === 'power' && c[1] === 'reset').length;
     expect(power.rcd()).toBe(true); // the trip
-    run(3);
+    // Long enough for the trip to reach the far end: the fake homes stand one apart in station
+    // order, so it grows with the stations (3 s did until 22, 2026-11-17).
+    run(4);
     expect(power.tripped).toBe(true);
     expect(resets()).toBe(0);
     expect(power.rcd()).toBe(true); // the reset

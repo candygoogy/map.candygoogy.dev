@@ -48,6 +48,10 @@ const TABLE: Record<string, [number, number]> = {
   featherplay: [5.8, 1.4],
   tellall: [1.6, 8.6],
   'phantomlink-sensors': [-8.4, 1.4],
+  // Two side projects (2026-11-17): atieclxx-fix south-west at the homelab's front edge,
+  // read-the-loop east between fettle and featherplay.
+  'atieclxx-fix': [-4.0, 9.1],
+  'read-the-loop': [6.2, -0.8],
   // The homelab cluster (Batch B, option A) west of the hub, wired as in reality since
   // 2026-10-21 (layout R1); before, layout W2's arc, every device
   // on its own link from homelab.
@@ -315,7 +319,7 @@ describe('world.json → arrival', () => {
     // Each on a frame at 50 fps, so within half of one (0.01 s) of its own time.
     for (const id of subs) expect(Math.abs(reach[id]! - due(id)), id).toBeLessThanOrEqual(0.0101);
     expect(Math.max(...Object.values(reach))).toBeCloseTo(2.2, 6);
-    expect(reach['eolietech']).toBeCloseTo(1.56, 6); // after siel-eolie, before experiments (1.5 at 0.12 s apart)
+    expect(reach['eolietech']).toBeCloseTo(1.58, 6); // after siel-eolie, before experiments (1.56 before the two side projects, 2026-11-17)
     // The tree's three levels draw faster, so homelab lands where it did with one (2026-10-21).
     expect(reach['homelab']).toBeCloseTo(1.74, 6);
   });

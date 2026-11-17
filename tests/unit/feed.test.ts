@@ -16,7 +16,7 @@ describe('feed', () => {
     expect(feed.version).toBe(1);
     expect(feed.site.url).toBe('https://candygoogy.dev');
     expect(feed.nodes.map((n) => n.id)).toEqual([
-      'origin', 'fettle', 'featherplay', 'tellall', 'idiff', 'phantomlink-sensors', 'notary',
+      'origin', 'fettle', 'featherplay', 'tellall', 'idiff', 'atieclxx-fix', 'read-the-loop', 'phantomlink-sensors', 'notary',
       'candygoogy-bot', 'dolci-eoliani', 'siel-eolie', 'eolietech', 'experiments', 'homelab', 'colophon', 'exit',
     ]);
     expect(feed.nodes.find((n) => n.id === 'fettle')).toMatchObject({
@@ -62,7 +62,7 @@ describe('feed', () => {
     });
     expect(feed.nodes.find((n) => n.id === 'desktop')).not.toHaveProperty('summary');
     // The feed itself is left as it came.
-    expect(parseFeed(fixture).nodes).toHaveLength(15);
+    expect(parseFeed(fixture).nodes).toHaveLength(17);
     // A device world.blend doesn't place, or whose link leaves another node, stays text.
     const { ap: _, ...rest } = world.linkFrom;
     expect(withCluster(parseFeed(fixture), { ...world, linkFrom: rest }).nodes.map((n) => n.id)).not.toContain('ap');

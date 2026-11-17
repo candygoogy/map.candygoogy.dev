@@ -563,7 +563,10 @@ test.describe('on a phone, by touch', () => {
           targets.some((o) => o !== t && meets(full, o.hit));
         const at = (y: number) =>
           page.evaluate(([x, y]) => document.elementFromPoint(x!, y!)?.closest('button.label')?.getAttribute('data-go') ?? null, [x, y]);
-        if (!blocked) for (const dy of [-21.5, 21.5]) expect(await at(mid + dy), `${view}: ${t.id} ${dy > 0 ? 'below' : 'above'}`).toBe(t.id);
+        // Except below Eolietech's in the composed view (2026-11-17, the owner's OK): since
+        // read-the-loop, Fettle's name sits just under it there, so it keeps 23 px, not 44.
+        const near = view === 'composed' && t.id === 'eolietech' ? [-21.5] : [-21.5, 21.5];
+        if (!blocked) for (const dy of near) expect(await at(mid + dy), `${view}: ${t.id} ${dy > 0 ? 'below' : 'above'}`).toBe(t.id);
         for (const dy of [-11.5, 11.5]) expect(await at(mid + dy), `${view}: ${t.id} ${dy}`).toBe(t.id);
       }
     }
@@ -584,7 +587,7 @@ test.describe('on a phone, by touch', () => {
   });
 
   test('a focused label, name and status line, lies over no other model (Experiments kept off candygoogy-bot)', async ({ page }) => {
-    test.setTimeout(60_000); // every station's label against every other model: 20 by 19 since 2026-11-04, about 31 s
+    test.setTimeout(60_000); // every station's label against every other model: 22 by 21 since 2026-11-17 (20 by 19 took about 31 s)
     await open(page, '', { width: 390, height: 844 });
     await page.evaluate(() => document.fonts.ready);
     for (const id of order) {

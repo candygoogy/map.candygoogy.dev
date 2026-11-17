@@ -594,8 +594,9 @@ test.describe('on a phone, by touch', () => {
     expect(start.zoom).toBeLessThan(0.85); // closer than composed: about 1.25x
     expect(start.zoom).toBeGreaterThan(0.7);
     expect(start.look).toBeLessThan(1e-6);
-    // Seven since the new stations: featherplay (5.97 from the hub) is inside rangeRings[1] too.
-    expect(start.n).toBe(7);
+    // Seven since the new stations: featherplay (5.97 from the hub) is inside rangeRings[1] too;
+    // eight since read-the-loop (6.25 from the hub; 2026-11-17, atieclxx-fix stands outside it).
+    expect(start.n).toBe(8);
     // Every inner station in view, and the ring as wide as the screen, less a model's room each side.
     expect(Math.min(...start.xs)).toBeGreaterThan(0);
     expect(Math.max(...start.xs)).toBeLessThan(start.width);

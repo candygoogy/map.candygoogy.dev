@@ -14,6 +14,9 @@ export const STATION_ORDER = [
   'featherplay',
   'tellall',
   'idiff',
+  // Two side projects (2026-11-17), the newest side projects first, in the feed's order.
+  'atieclxx-fix',
+  'read-the-loop',
   'phantomlink-sensors',
   'notary',
   'candygoogy-bot',

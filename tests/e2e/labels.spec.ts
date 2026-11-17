@@ -461,8 +461,10 @@ const sides = (page: Page, by: number) =>
 for (const [size, phone, unclear] of [
   [{ width: 1440, height: 900 }, false, 0],
   // The landscape overview is tight: candygoogy.dev's, Install diff's, Siel Eolie's and
-  // Homelab's names have no place that reads as their own, so they keep the right.
-  [{ width: 844, height: 390 }, true, 4],
+  // Homelab's names have no place that reads as their own, so they keep the right. So has
+  // featherplay's since read-the-loop stands behind it (2026-11-17, the owner's OK:
+  // every east spot tried did this, and none elsewhere kept the other checks).
+  [{ width: 844, height: 390 }, true, 5],
 ] as const) {
   test.describe(`in the ${size.width}×${size.height} overview`, () => {
     test.use({ viewport: size, hasTouch: phone, isMobile: phone });

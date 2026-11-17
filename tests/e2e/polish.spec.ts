@@ -106,7 +106,10 @@ const targets = (page: Page) =>
         const cy = (own.top + own.bottom) / 2;
         const half = Math.max(own.width, 44) / 2;
         laid.push({ at: out.length, box: [left, top, right, bottom], uncut: [cx - half, cy - 22, cx + half, cy + 22] });
-        cut = nodes.all().some((n) => {
+        // labels.ts also keeps a target above a phone's sheet (freeBottom): atieclxx-fix's, just
+        // over it at the homelab's station (2026-11-17).
+        const sheet = document.getElementById('stations')?.getBoundingClientRect().top ?? Infinity;
+        cut = (sheet > cy && cy + 22 > sheet) || nodes.all().some((n) => {
           if (n.id === go) return false;
           const xs: number[] = [];
           const ys: number[] = [];

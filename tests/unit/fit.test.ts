@@ -89,6 +89,8 @@ const NAME_PX: Record<string, number> = {
   featherplay: 89,
   tellall: 50,
   idiff: 80, // Install diff
+  'atieclxx-fix': 92,
+  'read-the-loop': 104, // Read the Loop
   'phantomlink-sensors': 153,
   notary: 59,
   'candygoogy-bot': 122,
